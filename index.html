@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>8-Bit Action Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>8-Bit Action Game</h1>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="320" height="180"></canvas>
+  </div>
+  <div id="hud">
+    <div id="stats">Health: 100 | Morality: 100 | Ammo: 20 | Level: 1</div>
+    <div id="messages"></div>
+  </div>
+  <div id="instructions">
+    <p>Move: W A S D</p>
+    <p>Shoot: J &nbsp;|&nbsp; Melee: K &nbsp;|&nbsp; Talk: E</p>
+    <p>Get the key, reach the green door to go to Level 2. In Level 3, reach the gold tile to win.</p>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
