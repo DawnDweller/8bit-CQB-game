@@ -73,10 +73,10 @@ function createPlayer(x, y) {
     y,
     w: 12,
     h: 12,
-    speed: 60,
-    bullets: 20,
-    health: 100,
-    morality: 100,
+    speed: 80,
+    bullets: 200,//0,
+    health: 500,//100,
+    morality: 500,//140,
     hasKey: false,
     facingX: 1,
     facingY: 0,
@@ -91,7 +91,7 @@ function createEnemy(x, y, behavior = "patrol") {
     y,
     w: 12,
     h: 12,
-    speed: 40,
+    speed: 80, //60
     bullets: 20,
     state: "shooting",
     fireCooldown: 0.8 + Math.random() * 0.6,
@@ -104,17 +104,18 @@ function createEnemy(x, y, behavior = "patrol") {
   };
 }
 
-function createCivilian(x, y, dialog) {
+function createCivilian(x, y, dialog, gender = "male") {
   return {
     x,
     y,
-    w: 10,
-    h: 10,
-    speed: 60, // more frantic
+    w: 11,
+    h: 11,
+    speed: 90, // more frantic
     vx: 0,
     vy: 0,
     alive: true,
     dialog,
+    gender,
     talkTimer: 0,
     changeDirTimer: 0
   };
@@ -140,7 +141,7 @@ function createBullet(x, y, dx, dy, owner) {
     h: 4,
     dx: dx / len,
     dy: dy / len,
-    speed: 120,
+    speed: 120, //120 // bulletspeed
     owner
   };
 }
@@ -148,10 +149,11 @@ function createBullet(x, y, dx, dy, owner) {
 // Level definitions
 // Simple 20x11 maps (MAP_COLS=20, MAP_ROWS=11)
 const level1 = {
+  //playerStart: { x: 35 * TILE_SIZE, y: 15 * TILE_SIZE },
   playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
   map: [
     // 0-19
-/*     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+/*  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,5,0,0,0,1,0,0,0,0,0,0,2,2,2,0,3,1],
     [1,0,0,5,0,6,0,1,0,0,0,0,0,0,2,2,2,0,0,1],
     [1,0,0,5,0,0,0,1,1,1,1,1,0,0,2,2,2,0,0,1],
@@ -161,63 +163,131 @@ const level1 = {
     [1,0,0,0,5,0,1,0,0,0,0,0,0,1,0,7,0,0,0,1],
     [1,0,0,0,0,0,1,0,2,2,2,2,0,1,0,0,0,0,0,1],
     [1,0,0,0,0,0,1,0,2,2,2,2,0,1,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] */
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] */      // map size x = 68 tile  y = 30 tile
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,6,0,0,0,1,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1],
-    [1,0,0,6,0,6,0,1,0,0,0,0,0,0,2,2,2,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,6,0,0,0,1,1,1,1,1,0,0,2,2,2,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,6,0,0,0,1,1,1,1,5,1,1,1,0,0,0,7,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,2,2,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,5,0,1,7,2,0,0,2,0,1,0,7,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,2,2,0,2,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,7,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,2,2,2,5,5,0,1,2,0,0,0,2,1,0,7,6,1,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,6,0,2,2,2,0,6,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,3,1],
+    [1,2,2,2,0,5,0,1,0,0,2,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+    [1,2,2,2,5,5,0,1,1,1,1,1,0,1,5,1,6,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,0,0,1,0,0,1,1,1,0,0,0,0,0,7,0,0,1,1,1,1,1,1,0,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,5,0,0,1,5,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+    [1,0,6,0,0,0,1,1,1,1,7,1,1,1,0,1,2,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,7,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+    [1,0,0,0,0,0,1,0,2,2,0,0,0,1,2,1,6,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,7,1,1,1,1,1,1,1,1,1,1,1,1,7,7,1,1,1,0,0,0,0,1],
+    [1,0,0,0,5,0,1,5,2,0,0,2,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,5,5,0,5,5,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,1,0,2,2,0,2,0,1,2,1,6,1,0,1,0,0,0,0,0,0,0,0,0,2,5,5,0,5,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,0,1,2,1,0,7,0,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,7,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,6,2,6,6,6,2,6,6,6,2,6,6,6,6,2,6,6,1,0,0,0,0,0,0,0,0,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,0,1,0,5,5,5,5,5,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,1,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,2,2,6,1,0,5,0,0,0,0,0,5,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,2,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,7,1,1,2,0,2,0,0,5,0,2,2,2,5,5,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,2,2,2,0,0,5,0,2,2,2,0,5,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,7,1,1,1,1,7,1,1,1,7,1,1,1,1],
+    [1,0,0,0,2,0,0,0,0,2,2,0,2,0,2,1,1,1,1,1,0,2,0,1,0,1,0,0,0,1,0,0,5,0,2,2,2,5,5,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,2,2,0,0,0,0,0,0,0,1,6,7,7,2,0,2,0,1,0,1,0,1,0,0,0,0,5,0,0,0,0,0,5,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,2,0,0,2,0,0,1,1,1,1,1,0,2,0,1,0,1,0,0,0,0,0,0,5,5,5,5,5,5,5,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,2,0,2,0,0,2,0,0,0,0,0,0,0,0,1,0,0,0,7,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,7,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,0,0,0,0,0,1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,2,2,0,0,0,0,6,6,0,0,0,0,0,0,1,0,0,0,6,0,0,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,5,0,0,0,0,5,5,0,0,0,0,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,6,6,0,0,0,0,0,6,0,1,0,0,0,1,0,0,0,0,6,0,0,0,1,0,0,0,0,0,1,0,1,0,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,0,0,0,0,6,0,0,1,1,1,0,1,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,1,0,1,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,0,6,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,6,0,1,0,0,0,1,1,1,0,1,0,1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,1,0,6,0,1,0,1,1,0,0,0,0,7,0,0,0,6,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,7,0,0,0,0,0,0,0,0,0,0,2,2,7,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
   ],
   // 1 Wall
   // 2 Breakable wall
   // 3 Door to next level
+  // 4 End Game
   // 5 Creme Color Furniture
   // 6 Violet Color Furniture
   // 7 Bluish Grey Color Furniture
   civilians: [
-    { x: 5 * TILE_SIZE, y: 2 * TILE_SIZE, text: "Please save Jannie, she is been tied and taken to that room by those men. Only she knows how to get out of here." },
-    { x: 7 * TILE_SIZE, y: 6 * TILE_SIZE, text: "The door is lock, we must find the rusty key! Then we can get out from the green door." }
-  ],
+    { x: 8 * TILE_SIZE, y: 2 * TILE_SIZE, text: "Please save Jannie, she is been tied and taken to that room by those men. Only she knows how to get out of here.", gender: "male" },
+    { x: 7 * TILE_SIZE, y: 6 * TILE_SIZE, text: "Jannie: The door is lock, we must find the rusty key! Then we can get out from the green door.", gender: "female" },
+    { x: 17 * TILE_SIZE, y: 17 * TILE_SIZE, text: "Doctor: I was stuck. Thanks for saving me. There are ammo and some medkit in the purple box behind me.", gender: "male" },
+    { x: 14 * TILE_SIZE, y: 7 * TILE_SIZE, text: "Father: All I wanted to get my little girl out of here!", gender: "male" },
+    { x: 14 * TILE_SIZE, y: 7 * TILE_SIZE, text: "Daughter: *Crying* Daddy!!! I wanna go home!.", gender: "female" },
+    { x: 40 * TILE_SIZE, y: 5 * TILE_SIZE, text: "*Nervous* Hey! You are the famous χ!", gender: "male" },
+    { x: 50 * TILE_SIZE, y: 20 * TILE_SIZE, text: "I heard that λ defeated you once... Is that true?", gender: "male" },
+    { x: 29 * TILE_SIZE, y: 12 * TILE_SIZE, text: "Oh my gosh! 🥹 Thank you!!", gender: "female" },
+    { x: 28 * TILE_SIZE, y: 14 * TILE_SIZE, text: "Thanks dude. 😎 You're so cool.", gender: "male" },
+    { x: 3 * TILE_SIZE, y: 2 * TILE_SIZE, text: "Alpha α : It was a trap, buddy! He wants you dead and he knows the only way to do is to hide behind me. When you have the chance just finish him through me. At least one of us should make it! Tell my wife I still love her. I am happy to know that I die beside you! 🥲 _____Chi χ : I'll make sure your death will not be in vein, old friend. 😌", gender: "male" }
+  ],//I thought I was a goner. Thank you!!!.
   enemies: [
     { x: 12 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
     { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, behavior: "patrol" },
     { x: 7 * TILE_SIZE, y: 8 * TILE_SIZE, behavior: "losShooter" },
     { x: 12 * TILE_SIZE, y: 6 * TILE_SIZE, behavior: "losShooter" },
     { x: 12 * TILE_SIZE, y: 9 * TILE_SIZE, behavior: "patrol" },
-    { x: 12 * TILE_SIZE, y: 9 * TILE_SIZE, behavior: "losShooter" }
+    { x: 12 * TILE_SIZE, y: 9 * TILE_SIZE, behavior: "losShooter" },
+    { x: 14 * TILE_SIZE, y: 7 * TILE_SIZE, behavior: "patrol" },
+    { x: 14 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "losShooter" },
+    { x: 2 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 3 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 4 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 5 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 6 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 7 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 8 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 9 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 10 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 11 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 12 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 13 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 14 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 15 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 16 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 17 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "losShooter" },
+    { x: 18 * TILE_SIZE, y: 12 * TILE_SIZE, behavior: "patrol" },
+    { x: 2 * TILE_SIZE, y: 11 * TILE_SIZE, behavior: "losShooter" },
+        { x: 37 * TILE_SIZE, y: 10 * TILE_SIZE, behavior: "losShooter" },
+        { x: 35 * TILE_SIZE, y: 10 * TILE_SIZE, behavior: "losShooter" },
+        { x: 33 * TILE_SIZE, y: 10 * TILE_SIZE, behavior: "losShooter" },
+        { x: 37 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" },
+        { x: 35 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" },
+        { x: 33 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" },
+          { x: 37 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losShooter" },
+          { x: 33 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losShooter" },
+          { x: 37 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losShooter" },
+          { x: 33 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losShooter" },
+        { x: 4 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "patrol" }, // first guard
+    { x: 17 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" },
+    { x: 15 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" },
+    { x: 12 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" },
+
+
+    { x: 3 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losShooter" },
+
+    { x: 14 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losShooter" },
+    { x: 13 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losShooter" },
+    { x: 2 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losShooter" },
+
+    { x: 1 * TILE_SIZE, y: 22 * TILE_SIZE, behavior: "losShooter" },
+    { x: 1 * TILE_SIZE, y: 26 * TILE_SIZE, behavior: "losShooter" },
+    { x: 5 * TILE_SIZE, y: 26 * TILE_SIZE, behavior: "losShooter" },
+    { x: 4 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
+    { x: 4 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
+    { x: 6 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
+    { x: 8 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
+    { x: 11 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
+    { x: 9 * TILE_SIZE, y: 28 * TILE_SIZE, behavior: "losShooter" }
   ],
   items: [
     { x: 4 * TILE_SIZE, y: 5 * TILE_SIZE, type: "health" },
+    { x: 8 * TILE_SIZE, y: 2 * TILE_SIZE, type: "ammo" },
+    { x: 16 * TILE_SIZE, y: 17 * TILE_SIZE, type: "health" },
+    { x: 28 * TILE_SIZE, y: 14 * TILE_SIZE, type: "health" },
     { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, type: "ammo" },
-    { x: 17 * TILE_SIZE, y: 4 * TILE_SIZE, type: "key" }
+    { x: 16 * TILE_SIZE, y: 17 * TILE_SIZE, type: "ammo" },
+    { x: 36 * TILE_SIZE, y: 15 * TILE_SIZE, type: "ammo" },
+    { x: 4 * TILE_SIZE, y: 2 * TILE_SIZE, type: "ammo" },
+    { x: 1 * TILE_SIZE, y: 28 * TILE_SIZE, type: "health" },
+    { x: 2 * TILE_SIZE, y: 28 * TILE_SIZE, type: "ammo" },
+    { x: 14 * TILE_SIZE, y: 10 * TILE_SIZE, type: "key" }
   ]
 };
 
@@ -238,7 +308,7 @@ const level2 = {
   ],
 
   civilians: [
-    { x: 6 * TILE_SIZE, y: 3 * TILE_SIZE, text: "You made it this far?" }
+    { x: 6 * TILE_SIZE, y: 3 * TILE_SIZE, text: "You made it this far?", gender: "male" }
   ],
   enemies: [
     { x: 10 * TILE_SIZE, y: 4 * TILE_SIZE, behavior: "losShooter" },
@@ -292,7 +362,7 @@ function loadLevel(index) {
 
   enemies = lvl.enemies.map(e => createEnemy(e.x, e.y, e.behavior));
   civilians = lvl.civilians.map(c =>
-    createCivilian(c.x, c.y, c.text)
+    createCivilian(c.x, c.y, c.text, c.gender)
   );
   items = lvl.items.map(i => createItem(i.x, i.y, i.type));
 
@@ -350,12 +420,13 @@ function moveWithCollision(entity, dx, dy) {
     const top = entity.y;
     const bottom = entity.y + entity.h;
 
-    const tilesToCheck = [
+     const tilesToCheck = [
       { x: left, y: top },
       { x: left, y: bottom - 1 },
       { x: right - 1, y: top },
       { x: right - 1, y: bottom - 1 }
-    ];
+    ]; 
+
     let blocked = false;
     for (const p of tilesToCheck) {
       const tile = tileAtPixel(p.x, p.y);
@@ -724,11 +795,18 @@ function updateMelee(dt) {
   }
 
   // Environment interactions (breakable walls + furniture)
+  const diag = radius * 0.707; // radius / √2
   const tilesToCheck = [
+    { x: cx, y: cy },             // player's own tile
     { x: cx - radius, y: cy },
     { x: cx + radius, y: cy },
     { x: cx, y: cy - radius },
     { x: cx, y: cy + radius }
+    //,{ x: cx - diag, y: cy - diag },  // top-left
+    //{ x: cx + diag, y: cy - diag },  // top-right
+    //{ x: cx - diag, y: cy + diag },  // bottom-left
+    //{ x: cx + diag, y: cy + diag }   // bottom-right
+  
   ];
   for (const p of tilesToCheck) {
     const tx = Math.floor(p.x / TILE_SIZE);
@@ -823,7 +901,7 @@ function drawTile(x, y, t) {
   } else if (t === TILE_DOOR) color = "#00aa00";
   else if (t === TILE_GOAL) color = "#e0c040";
   else if (t === TILE_FURNITURE1) color = "#aa7744";
-  else if (t === TILE_FURNITURE2) color = "#884488";
+  else if (t === TILE_FURNITURE2) color = "#6a346a";
   else if (t === TILE_FURNITURE3) color = "#6688aa";
 
   ctx.fillStyle = color;
@@ -863,25 +941,27 @@ function draw() {
   for (const it of items) {
     if (!it.active) continue;
 
-    if (it.type === "health") ctx.fillStyle = "#55ff55";
-    else if (it.type === "ammo") ctx.fillStyle = "#ffff55";
-    else if (it.type === "key") ctx.fillStyle = "#b40000";
+    if (it.type === "health") ctx.fillStyle = "#55ff5500";
+    else if (it.type === "ammo") ctx.fillStyle = "#ffff5500";
+    else if (it.type === "key") ctx.fillStyle = "#b4000000";
     ctx.fillRect(it.x, it.y, it.w, it.h);
 
     // Simple 8-bit style symbols
     ctx.fillStyle = "#000000";
     ctx.font = "8px monospace";
     if (it.type === "health") {
-      ctx.fillText("+", it.x + 2, it.y + it.h - 2);
+      ctx.fillText("➕", it.x + 2, it.y + it.h - 2);
     } else if (it.type === "ammo") {
-      ctx.fillText("|", it.x + 3, it.y + it.h - 2);
+      ctx.fillText("💥", it.x + 3, it.y + it.h - 2);
+    } else if (it.type === "key") {
+      ctx.fillText("🔑", it.x, it.y + it.h - 2);
     }
   }
 
   // Civilians
   for (const c of civilians) {
     if (!c.alive) continue;
-    ctx.fillStyle = "#f1bae8";
+    ctx.fillStyle = c.gender === "female" ? "#ff9aee" : "#97a7cc";
     ctx.fillRect(c.x, c.y, c.w, c.h);
     if (c.talkTimer > 0) {
       ctx.fillStyle = "#ffffff";
@@ -893,14 +973,24 @@ function draw() {
   // Enemies
   for (const e of enemies) {
     if (!e.alive) continue;
-    ctx.fillStyle = "#ff0808";
+    ctx.fillStyle = e.behavior === "patrol" ? "#ff2222" : "#c71a1a";
     ctx.fillRect(e.x, e.y, e.w, e.h);
+
+
+  /* ctx.fillStyle = "#000000";
+  ctx.font = "8px monospace";
+  ctx.fillText("X", e.x + 4, e.y + e.h - 3 ); */
   }
 
   // Player
   if (player) {
-    ctx.fillStyle = "#44aaff";
+    ctx.fillStyle = "#436fff"; // #436fff
     ctx.fillRect(player.x, player.y, player.w, player.h);
+   
+      // Label inside player tile
+      ctx.fillStyle = "#000000";
+      ctx.font = "8px monospace";
+      ctx.fillText("χ", player.x + 4, player.y + player.h - 5 ); //🐉 武  
 
     // Melee circle (visual)
     if (player.meleeTimer > 0) {
@@ -909,7 +999,7 @@ function draw() {
       ctx.arc(
         player.x + player.w / 2,
         player.y + player.h / 2,
-        18,
+        18,//18,
         0,
         Math.PI * 2
       );
