@@ -75,9 +75,9 @@ function createPlayer(x, y) {
     w: 12,
     h: 12,
     speed: 80,
-    bullets: 200,//0,
-    health: 500,//100,
-    morality: 500,//140,
+    bullets: 0,//0,
+    health: 100,//100,
+    morality: 140,//140,
     hasKey: false,
     facingX: 1,
     facingY: 0,
@@ -150,7 +150,7 @@ function createBullet(x, y, dx, dy, owner) {
 // Level definitions
 // Simple 20x11 maps (MAP_COLS=20, MAP_ROWS=11)
 const level1 = {
-  playerStart: { x: 32 * TILE_SIZE, y: 2 * TILE_SIZE },
+  playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
   //playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE }, // original player start coordinates
   map: [
     // 0-19
@@ -166,39 +166,41 @@ const level1 = {
     [1,0,0,0,0,0,1,0,2,2,2,2,0,1,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] */      // map size x = 68 tile  y = 30 tile
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,2,2,2,5,5,0,1,2,0,0,0,2,1,0,7,6,1,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,6,0,2,2,2,0,6,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,3,1],
-    [1,2,2,2,0,5,0,1,0,0,2,0,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
-    [1,2,2,2,5,5,0,1,1,1,1,1,0,1,5,1,6,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,0,0,1,0,0,1,1,1,0,0,0,0,0,7,0,0,1,1,1,1,1,1,0,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,5,0,0,1,5,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
-    [1,0,6,0,0,0,1,1,1,1,7,1,2,1,0,1,2,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,7,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,2,2,0,0,0,1,2,1,6,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,7,1,1,1,1,1,1,1,1,1,1,1,1,7,7,1,1,1,0,0,0,0,1],
-    [1,0,0,0,5,0,1,5,2,0,0,2,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,5,5,0,5,5,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,2,2,0,2,0,1,2,1,6,1,0,1,0,0,0,0,0,0,0,0,0,2,5,5,0,5,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,0,0,0,0,0,1,2,1,0,7,0,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,8,8,0,8,0,6,6,6,6,6,6,6,6,6,6,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,2,2,2,5,5,0,1,2,0,0,0,2,1,0,7,6,1,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,6,0,2,2,2,0,6,1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,5,0,0,1,0,0,0,3,1],
+    [1,2,2,2,0,5,0,1,0,0,2,0,0,1,0,1,0,1,0,1,0,0,8,7,5,2,6,7,8,0,0,4,2,0,0,1,0,0,0,0,0,0,0,1,0,0,4,0,2,0,0,1,0,0,1,0,0,0,0,0,0,5,0,0,1,0,0,0,0,1],
+    [1,2,2,2,5,5,0,1,1,1,1,1,0,1,5,1,6,1,0,1,0,0,0,0,0,0,0,0,0,0,0,4,2,0,0,1,0,0,1,1,1,0,0,1,0,0,1,1,1,0,0,0,0,0,7,0,0,1,1,1,1,1,1,2,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,5,0,0,1,5,1,0,1,0,1,0,0,2,2,2,2,2,2,2,2,0,4,2,0,0,7,0,0,1,0,1,0,0,1,0,0,1,0,1,0,8,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+    [1,0,6,0,0,0,1,1,1,1,7,1,2,1,0,1,2,1,0,1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,1,0,0,1,0,1,0,0,7,0,0,1,0,1,0,2,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+    [1,0,0,0,0,0,1,0,2,2,0,0,0,1,2,1,6,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,7,1,1,1,1,1,1,1,1,1,1,1,1,7,7,1,1,1,2,0,0,0,1],
+    [1,0,0,0,5,0,1,5,2,0,0,2,0,1,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,5,5,0,5,5,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,5,0,0,0,1],
+    [1,0,0,0,0,0,1,0,2,2,0,2,0,1,2,1,6,1,0,1,0,0,0,0,0,0,0,0,0,2,5,5,0,5,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,5,0,0,0,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,0,1,2,1,0,7,0,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,8,8,0,8,0,6,6,6,6,6,6,6,6,6,6,0,1,0,0,0,0,0,0,0,0,1,0,5,0,0,0,1],
     [1,7,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,8,8,8,8,6,0,6,0,6,0,6,0,6,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,6,2,6,6,6,2,6,6,6,2,6,6,6,6,2,6,6,1,0,0,0,0,0,0,0,0,1,6,0,0,0,8,8,8,0,8,8,0,0,8,0,6,6,6,6,6,6,6,6,6,6,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,6,0,6,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,1,1,0,1,0,5,5,5,5,5,5,5,0,0,8,8,6,0,6,0,0,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,1,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,2,1,2,1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,2,2,6,1,0,5,0,0,0,0,0,5,0,0,8,0,6,6,6,0,1,1,7,1,1,1,1,1,0,0,0,2,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,7,1,1,2,0,2,0,0,5,0,2,2,2,5,5,0,0,8,8,6,0,6,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],
-    [1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,2,2,2,0,0,5,0,2,2,2,0,5,0,0,8,0,6,6,6,0,1,0,0,0,0,0,0,1,1,7,1,1,1,1,7,1,1,1,7,1,1,1,1],
+    [1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,2,2,2,0,0,5,0,2,2,2,0,5,0,0,8,0,6,6,6,0,1,0,0,0,0,0,0,1,1,7,1,1,1,1,7,1,1,1,7,1,1,2,1],
     [1,0,0,0,2,0,0,0,0,2,2,0,2,0,2,1,1,1,1,1,0,2,0,1,0,1,0,0,0,1,0,0,5,0,2,2,2,5,5,0,0,8,8,6,0,6,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,8,1],
     [1,0,0,0,0,0,2,2,0,0,0,0,0,0,0,1,6,7,7,2,0,2,0,1,0,1,0,1,0,0,0,0,5,0,0,0,0,0,5,0,0,8,0,6,6,6,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,1],
     [1,0,0,0,0,0,0,0,0,2,0,0,2,0,0,1,1,1,1,1,0,2,0,1,0,1,0,0,0,0,0,0,5,5,5,5,5,5,5,0,0,8,8,6,0,6,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,8,1],
     [1,0,0,0,0,2,0,2,0,0,2,0,0,0,0,0,0,0,0,1,0,0,0,7,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,6,6,6,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,1],
     [1,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,7,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,8,6,0,6,0,1,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,5,8,1],
-    [1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,6,0,1,0,0,0,0,0,0,2,0,0,6,2,6,0,0,6,0,0,0,0,5,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,0,0,0,0,0,1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,6,2,6,0,0,6,0,0,0,0,5,8,1],
+    [1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,5,0,5,0,5,0,5,0,0,0,0,0,0,0,0,0,8,0,0,0,6,0,1,0,0,0,0,0,0,2,0,0,6,2,6,0,0,6,0,0,0,0,5,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,0,0,0,0,0,1,1,0,1,0,1,0,1,1,1,1,1,1,1,5,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,6,2,6,0,0,6,0,0,0,0,5,8,1],
     [1,0,0,0,2,2,0,0,0,0,6,6,0,0,0,0,0,0,1,0,0,0,6,0,0,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,2,2,2,2,0,0,0,1,0,0,0,0,0,0,2,0,0,6,2,6,0,0,6,0,0,0,0,5,0,1],
-    [1,0,5,0,0,0,0,5,5,0,0,0,0,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,5,1,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,5,8,1],
-    [1,0,0,0,6,6,0,0,0,0,0,6,0,1,0,0,0,1,0,0,0,0,6,0,0,0,1,0,0,0,0,0,1,0,1,0,1,1,1,0,0,0,2,0,0,5,2,1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,1],
-    [1,0,0,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,0,0,0,0,6,0,0,1,1,1,0,1,0,1,1,0,1,0,0,0,0,0,0,0,2,2,5,2,2,2,0,5,0,0,0,0,2,2,2,0,0,0,2,2,2,2,0,0,0,5,8,1],
-    [1,1,1,1,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,1,0,1,0,1,1,0,0,0,0,0,5,2,1,8,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,1],
+    [1,0,5,0,0,0,0,5,5,0,0,0,0,1,1,1,0,1,1,0,0,0,0,0,5,0,0,0,1,0,1,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,5,1,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,5,8,1],
+    [1,0,0,0,6,6,0,0,0,0,0,6,0,1,0,0,0,1,0,0,0,0,6,0,5,0,1,0,0,5,0,0,1,0,1,0,1,1,1,0,0,0,2,0,0,5,2,1,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,1],
+    [1,0,0,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,0,0,0,0,6,0,5,1,1,1,0,1,0,1,1,0,1,0,0,0,0,0,0,0,2,2,5,2,2,2,0,5,0,0,0,0,2,2,2,0,0,0,2,2,2,2,0,0,0,5,8,1],
+    [1,1,1,1,0,0,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,5,0,1,0,0,1,0,0,1,0,1,0,1,0,1,1,0,0,0,0,0,5,2,1,8,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,1],
     [1,0,0,1,0,6,0,1,0,0,1,0,1,0,0,1,0,0,0,0,0,0,6,0,1,0,0,0,1,1,1,0,1,0,1,0,0,0,0,1,0,0,0,0,2,2,2,1,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,8,1],
-    [1,0,2,1,0,6,0,1,0,1,1,0,0,0,0,7,0,0,0,6,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,2,2,2,1,8,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,1],
-    [1,0,7,0,0,0,0,0,0,0,0,0,0,2,2,7,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,2,2,1,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,1],
+    [1,0,2,1,0,6,0,1,0,1,1,0,0,0,0,7,0,0,0,6,0,0,0,0,1,1,1,0,0,0,0,0,0,5,0,0,0,1,0,0,0,0,0,0,2,2,2,1,8,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,1],
+    [1,0,7,0,0,0,0,0,0,0,0,0,0,2,2,7,0,0,0,6,0,0,0,0,5,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,2,2,1,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,8,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
   ],
+  // Secret password:  One sword keeps another in the sheath. Sometimes the threat of violence alone is a deterrent. 
+
   // 1 Wall
   // 2 Breakable wall
   // 3 Door to next level
@@ -213,11 +215,27 @@ const level1 = {
     { x: 17 * TILE_SIZE, y: 17 * TILE_SIZE, text: "Doctor: I was stuck. Thanks for saving me. There are ammo and some medkit in the purple box behind me.", gender: "male" },
     { x: 14 * TILE_SIZE, y: 7 * TILE_SIZE, text: "Father: All I wanted to get my little girl out of here!", gender: "male" },
     { x: 14 * TILE_SIZE, y: 7 * TILE_SIZE, text: "Daughter: *Crying* Daddy!!! I wanna go home!.", gender: "female" },
-    { x: 40 * TILE_SIZE, y: 5 * TILE_SIZE, text: "*Nervous* Hey! You are the famous χ!", gender: "male" },
+    { x: 40 * TILE_SIZE, y: 6 * TILE_SIZE, text: "*Nervous* Hey! You are the famous χ!", gender: "male" },
     { x: 50 * TILE_SIZE, y: 20 * TILE_SIZE, text: "I heard that λ defeated you once... Is that true?", gender: "male" },
     { x: 29 * TILE_SIZE, y: 12 * TILE_SIZE, text: "Oh my gosh! 🥹 Thank you!!", gender: "female" },
     { x: 28 * TILE_SIZE, y: 14 * TILE_SIZE, text: "Thanks dude. 😎 You're so cool.", gender: "male" },
-    { x: 3 * TILE_SIZE, y: 2 * TILE_SIZE, text: "Alpha α : It was a trap, buddy! He wants you dead and he knows the only way to do is to hide behind me. When you have the chance just finish him through me. At least one of us should make it! Tell my wife I still love her. I am happy to know that I die beside you! 🥲 _____Chi χ : I'll make sure your death will not be in vein, old friend. 😌", gender: "male" }
+    { x: 3 * TILE_SIZE, y: 2 * TILE_SIZE, text: "Alpha α : It was a trap, buddy! He wants you dead and he knows the only way to do is to hide behind me. When you have the chance just finish him through me. At least one of us should make it! Tell my wife I still love her. I am happy to know that I die beside you! 🥲 _____Chi χ : I'll make sure your death will not be in vein, old friend. 😌", gender: "male" },
+    
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "Help!..", gender: "male" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "Help me!..", gender: "male" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "No! Please...", gender: "male" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "I don't wanna die!", gender: "male" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "Don't hurt me.", gender: "male" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "Don't shoot!", gender: "male" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "Please spare me!", gender: "female" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "I wanna go home!", gender: "female" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "We're all gonna die here!!!", gender: "female" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "Please, someone...", gender: "female" },
+    { x: 26 * TILE_SIZE, y: 9 * TILE_SIZE, text: "Help me!!!", gender: "female" },
+    { x: 34 * TILE_SIZE, y: 8 * TILE_SIZE, text: "Thank you 🥹 so much! The secret password is '...semitemoS'.", gender: "female" },
+
+    { x: 47 * TILE_SIZE, y: 5 * TILE_SIZE, text: "I was a goner. 🥲 Thanks.", gender: "male" }
+
   ],//I thought I was a goner. Thank you!!!.
   enemies: [
     { x: 12 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
@@ -276,7 +294,54 @@ const level1 = {
     { x: 6 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
     { x: 8 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
     { x: 11 * TILE_SIZE, y: 30 * TILE_SIZE, behavior: "losShooter" },
-    { x: 9 * TILE_SIZE, y: 28 * TILE_SIZE, behavior: "losShooter" }
+    { x: 9 * TILE_SIZE, y: 28 * TILE_SIZE, behavior: "losShooter" },
+
+    { x: 60 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losShooter" },
+    { x: 58 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losShooter" },
+    { x: 56 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losShooter" },
+    { x: 64 * TILE_SIZE, y: 22 * TILE_SIZE, behavior: "losShooter" },
+    { x: 64 * TILE_SIZE, y: 24 * TILE_SIZE, behavior: "losShooter" },
+    { x: 59 * TILE_SIZE, y: 24 * TILE_SIZE, behavior: "patrol" },
+    { x: 57 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "patrol" },
+
+    { x: 67 * TILE_SIZE, y: 1 * TILE_SIZE, behavior: "losShooter" },
+    { x: 68 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
+    { x: 67 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
+    { x: 68 * TILE_SIZE, y: 4 * TILE_SIZE, behavior: "losShooter" },
+    { x: 66 * TILE_SIZE, y: 4 * TILE_SIZE, behavior: "losShooter" },
+    { x: 68 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "patrol" },
+
+    { x: 60 * TILE_SIZE, y: 10 * TILE_SIZE, behavior: "patrol" },
+    { x: 57 * TILE_SIZE, y: 10 * TILE_SIZE, behavior: "patrol" },
+
+    { x: 60 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
+    { x: 60 * TILE_SIZE, y: 1 * TILE_SIZE, behavior: "losShooter" },
+    { x: 63 * TILE_SIZE, y: 1 * TILE_SIZE, behavior: "patrol" },
+
+     { x: 44 * TILE_SIZE, y: 1 * TILE_SIZE, behavior: "losShooter" },
+     { x: 49 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "losShooter" },
+     { x: 44 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "losShooter" },
+
+   { x: 23 * TILE_SIZE, y: 1 * TILE_SIZE, behavior: "losShooter" },
+   { x: 28 * TILE_SIZE, y: 1 * TILE_SIZE, behavior: "losShooter" },
+    { x: 24 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "losShooter" },
+   { x: 26 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "losShooter" },
+   { x: 21 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "losShooter" },
+
+   { x: 42 * TILE_SIZE, y: 6 * TILE_SIZE, behavior: "losShooter" },
+   { x: 37 * TILE_SIZE, y: 6 * TILE_SIZE, behavior: "patrol" },
+
+    { x: 37 * TILE_SIZE, y: 28 * TILE_SIZE, behavior: "patrol" },
+    { x: 36 * TILE_SIZE, y: 28 * TILE_SIZE, behavior: "patrol" },
+    { x: 30 * TILE_SIZE, y: 27 * TILE_SIZE, behavior: "patrol" },
+    { x: 33 * TILE_SIZE, y: 26 * TILE_SIZE, behavior: "patrol" },
+    { x: 27 * TILE_SIZE, y: 24 * TILE_SIZE, behavior: "patrol" },
+    { x: 38 * TILE_SIZE, y: 23 * TILE_SIZE, behavior: "patrol" },
+    { x: 26 * TILE_SIZE, y: 28 * TILE_SIZE, behavior: "patrol" },
+
+    { x: 34 * TILE_SIZE, y: 8 * TILE_SIZE, behavior: "losShooter" },
+    { x: 22 * TILE_SIZE, y: 8 * TILE_SIZE, behavior: "losShooter" },
+    { x: 26 * TILE_SIZE, y: 8 * TILE_SIZE, behavior: "losShooter" }
   ],
   items: [
     { x: 4 * TILE_SIZE, y: 5 * TILE_SIZE, type: "health" },
@@ -289,7 +354,13 @@ const level1 = {
     { x: 4 * TILE_SIZE, y: 2 * TILE_SIZE, type: "ammo" },
     { x: 1 * TILE_SIZE, y: 28 * TILE_SIZE, type: "health" },
     { x: 2 * TILE_SIZE, y: 28 * TILE_SIZE, type: "ammo" },
-    { x: 14 * TILE_SIZE, y: 10 * TILE_SIZE, type: "key" }
+    { x: 14 * TILE_SIZE, y: 10 * TILE_SIZE, type: "key" },
+
+ { x: 6 * TILE_SIZE, y: 15 * TILE_SIZE, type: "health" },
+ { x: 32 * TILE_SIZE, y: 7 * TILE_SIZE, type: "health" },
+
+   { x: 50 * TILE_SIZE, y: 15 * TILE_SIZE, type: "ammo" },
+    { x: 56 * TILE_SIZE, y: 12 * TILE_SIZE, type: "ammo" }
   ]
 };
 
