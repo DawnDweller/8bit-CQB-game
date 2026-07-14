@@ -127,6 +127,10 @@ function createEnemy(x, y, behavior = "patrol", opts = {}) {
   if (behavior === "shooter") {
     base.bullets = 50; // Fewer bullets for new shooter
   }
+  if (behavior === "shotShooter") {
+    base.bullets = 30;
+    base.fireCooldown = 1.2 + Math.random() * 0.6;
+  }
   // Allow custom values from opts
   for (const k in opts) base[k] = opts[k];
   return base;
@@ -417,7 +421,10 @@ const level1 = {
 { x: 51 * TILE_SIZE, y: 15 * TILE_SIZE, behavior: "losPatrol" }  ,
 { x: 51 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" }  ,
 { x: 53 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" } ,
-{ x: 55 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" }   
+{ x: 55 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" }   ,
+
+
+{ x: 5 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "shotShooter" } 
 
 
 
@@ -722,7 +729,7 @@ function talkToCivilian() {
   for (const e of enemies) {
     if (!e.alive) continue;
     if (!e.isNeutral) continue;
-    if (e.behavior !== "shooter" && e.behavior !== "boss") continue;
+    if (e.behavior !== "shooter" && e.behavior !== "shotShooter" && e.behavior !== "boss") continue;
     const dx = e.x - player.x;
     const dy = e.y - player.y;
     const dist = Math.hypot(dx, dy);
@@ -910,6 +917,37 @@ function updateEnemies(dt) {
       continue;
     }
 
+    // --- SHOT SHOOTER (orange), shotgun scatter, CIVILIAN-LIKE after ammo ---
+    if (e.behavior === "shotShooter") {
+      if (e.isNeutral) {
+        if (e.talkTimer > 0) e.talkTimer -= dt;
+        continue;
+      }
+
+      e.fireCooldown -= dt;
+      if (e.fireCooldown <= 0 && e.bullets > 0) {
+        if (hasLineOfSight(ex, ey, px, py)) {
+          const baseDx = px - ex;
+          const baseDy = py - ey;
+          const baseAngle = Math.atan2(baseDy, baseDx);
+          const pellets = 5;
+          const spread = Math.PI / 6;
+          for (let i = 0; i < pellets; i++) {
+            const angle = baseAngle + (i - (pellets - 1) / 2) * (spread / (pellets - 1));
+            bullets.push(createBullet(ex, ey, Math.cos(angle), Math.sin(angle), "enemy"));
+          }
+          e.bullets -= pellets;
+          if (e.bullets < 0) e.bullets = 0;
+        }
+        e.fireCooldown = 1.2 + Math.random() * 0.6;
+      }
+      if (e.bullets <= 0) {
+        e.isNeutral = true;
+        e.dialog = "...";
+      }
+      continue;
+    }
+
     // --- SHOOTER (purple), CIVILIAN-LIKE after ammo ---
     if (e.behavior === "shooter") {
       if (e.isNeutral) {
@@ -1066,6 +1104,15 @@ function updateBullets(dt) {
               e.isNeutral = true;
               e.dialog = e.dialog || "You’ve defeated me... Let’s talk.";
             } else {
+              if (e.isNeutral && (e.behavior === "shooter" || e.behavior === "shotShooter")) {
+                player.morality -= 33;
+                setMessage("You killed an unarmed enemy!");
+                if (player.morality <= 0) {
+                  player.morality = 0;
+                  triggerGameOver("Your morality reached zero.");
+                }
+                updateHUD();
+              }
               e.alive = false;
             }
           }
@@ -1131,6 +1178,15 @@ function updateMelee(dt) {
           e.isNeutral = true;
           e.dialog = e.dialog || "You’ve defeated me... Let’s talk.";
         } else {
+          if (e.isNeutral && (e.behavior === "shooter" || e.behavior === "shotShooter")) {
+            player.morality -= 33;
+            setMessage("You killed an unarmed enemy!");
+            if (player.morality <= 0) {
+              player.morality = 0;
+              triggerGameOver("Your morality reached zero.");
+            }
+            updateHUD();
+          }
           e.alive = false;
         }
       }
@@ -1332,6 +1388,7 @@ function draw() {
     else if (e.behavior === "kicker") color = "#ffe258";
     else if (e.behavior === "boss") color = e.isNeutral ? "#6d6d6d" : "#b2b2b2";
     else if (e.behavior === "shooter") color = e.isNeutral ? "#834b83" : "#800080";
+    else if (e.behavior === "shotShooter") color = e.isNeutral ? "#c47a00" : "#ff8c00";
 
     ctx.fillStyle = color;
     ctx.fillRect(e.x, e.y, e.w, e.h);
@@ -1346,8 +1403,13 @@ function draw() {
   ctx.font = "8px monospace";
   ctx.fillText("η", e.x + 4, e.y + e.h - 4.5 ); 
 
+ if (e.behavior === "shotShooter")
+   ctx.fillStyle = "#000000";
+  ctx.font = "8px monospace";
+  ctx.fillText("σ", e.x + 4, e.y + e.h - 4.5 );
 
-    if (e.talkTimer > 0 && e.isNeutral && (e.behavior === "shooter" || e.behavior === "boss")) {
+
+    if (e.talkTimer > 0 && e.isNeutral && (e.behavior === "shooter" || e.behavior === "shotShooter" || e.behavior === "boss")) {
       ctx.fillStyle = "#ffffff";
       ctx.font = "6px monospace";
       ctx.fillText("!!!", e.x - 2, e.y - 4);
