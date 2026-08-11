@@ -26,6 +26,8 @@ const TILE_FURNITURE2 = 6;
 const TILE_FURNITURE3 = 7;
 const TILE_FURNITURE4 = 8;
 const TILE_SECRET_DOOR = 9;
+const TILE_PASSDOOR = 10;
+const TILE_WATER = 11;
 
 const keys = {};
 window.addEventListener("keydown", e => {
@@ -64,7 +66,9 @@ let currentLevelIndex = 0;
 let tilemap = [];
 // key: "x,y" -> { bulletHits }
 let breakableState = {};
+let secretCode = null; // generated when shooter goes neutral
 let lastTime = 0;
+let waveTime = 0;
 let gameOver = false;
 let win = false;
 
@@ -76,13 +80,17 @@ function createPlayer(x, y) {
     w: 12,
     h: 12,
     speed: 80,
-    bullets: 0,//0,
-    health: 100,//100,
+    bullets: 10,//0,
+    health: 500,//100,
     morality: 140,//140,
     hasKey: false,
+    hasMelee: false,
     facingX: 1,
     facingY: 0,
+    armor: 0,
+    breath: 8,
     meleeTimer: 0,
+    parryTimer: 0,
     shootCooldown: 0
   };
 }
@@ -182,7 +190,7 @@ function createBullet(x, y, dx, dy, owner) {
 // Simple 20x11 maps (MAP_COLS=20, MAP_ROWS=11)
 // Secret password:  One sword keeps another in the sheath. Sometimes the threat of violence alone is a deterrent. 
 const level1 = {
-  playerStart: { x: 1 * TILE_SIZE, y: 1 * TILE_SIZE },
+  playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
   map: [      // map size x = 69 tile  y = 31 tile
   // 1 Wall
   // 2 Breakable wall
@@ -194,10 +202,10 @@ const level1 = {
   // 8 Brownish Green Color Furniture
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,11,11,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,11,11,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,11,11,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,11,11,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,1],
     [1,9,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
@@ -216,7 +224,7 @@ const level1 = {
     [1,0,1,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
     [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
     [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,1],
-    [1,1,1,9,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,9,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,9,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,9,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,7,6,7,0,0,0,0,1],
@@ -292,7 +300,8 @@ const level1 = {
 { x: 7 * TILE_SIZE, y: 15 * TILE_SIZE, text: "Thank you. That was claustrophobic. There are others. Please help them!", gender: "female" }
   ],
   enemies: [
-  /*  { x: 12 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
+    /*
+    { x: 12 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
     { x: 9 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losPatrol" },
     { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, behavior: "losPatrol" },
     { x: 7 * TILE_SIZE, y: 8 * TILE_SIZE, behavior: "losShooter" },
@@ -453,7 +462,9 @@ const level1 = {
     { x: 42 * TILE_SIZE, y: 11 * TILE_SIZE, type: "ammo" }
     */
      { x: 11 * TILE_SIZE, y: 30 * TILE_SIZE, type: "ammo" },
-     { x: 11 * TILE_SIZE, y: 27 * TILE_SIZE, type: "health" }
+     { x: 11 * TILE_SIZE, y: 27 * TILE_SIZE, type: "health" },
+     { x: 30 * TILE_SIZE, y: 5 * TILE_SIZE, type: "scroll" },
+     { x: 18 * TILE_SIZE, y: 3 * TILE_SIZE, type: "vest" }
 
   ]
 };
@@ -580,8 +591,17 @@ function isSolidForMovement(tile) {
     tile === TILE_FURNITURE2 ||
     tile === TILE_FURNITURE3 ||
     tile === TILE_FURNITURE4 ||
-    tile === TILE_SECRET_DOOR
+    tile === TILE_SECRET_DOOR ||
+    tile === TILE_PASSDOOR
   );
+}
+
+function isWaterTile(px, py) {
+  return tileAtPixel(px, py) === TILE_WATER;
+}
+
+function entityInWater(e) {
+  return isWaterTile(e.x + e.w / 2, e.y + e.h / 2);
 }
 
 function blocksBullets(tile) {
@@ -590,6 +610,19 @@ function blocksBullets(tile) {
     tile === TILE_BREAKABLE ||
     tile === TILE_DOOR
   );
+}
+
+function damagePlayer(amount) {
+  if (player.armor > 0) {
+    const absorbed = Math.min(player.armor, amount);
+    player.armor -= absorbed;
+    amount -= absorbed;
+  }
+  if (amount > 0) {
+    player.health -= amount;
+    if (player.health < 0) player.health = 0;
+  }
+  updateHUD();
 }
 
 function rectsOverlap(a, b) {
@@ -654,6 +687,36 @@ function moveWithCollision(entity, dx, dy) {
   }
 }
 
+let passDoorPromptCooldown = 0;
+
+// Returns true if movement was blocked by a password door prompt
+function checkPasswordDoor(mdx, mdy) {
+  if (passDoorPromptCooldown > 0) return false;
+  if (!mdx && !mdy) return false;
+
+  // Check tile in the direction the player is trying to move
+  const cx = player.x + player.w / 2 + (mdx > 0 ? player.w / 2 + 2 : mdx < 0 ? -player.w / 2 - 2 : 0);
+  const cy = player.y + player.h / 2 + (mdy > 0 ? player.h / 2 + 2 : mdy < 0 ? -player.h / 2 - 2 : 0);
+  const tile = tileAtPixel(cx, cy);
+  if (tile !== TILE_PASSDOOR) return false;
+
+  passDoorPromptCooldown = 2;
+  const answer = prompt("LOCKED TERMINAL — Enter access code:");
+  // Reset lastTime so the paused prompt time doesn't cause a dt spike
+  lastTime = 0;
+  // Clear held keys so player doesn't lurch after dismissing
+  for (const k in keys) keys[k] = false;
+  if (answer !== null && secretCode && answer.trim() === secretCode) {
+    const tx = Math.floor(cx / TILE_SIZE);
+    const ty = Math.floor(cy / TILE_SIZE);
+    setTile(tx, ty, TILE_FLOOR);
+    setMessage("Access granted.", 2000);
+  } else {
+    setMessage("Wrong code. Access denied.", 2000);
+  }
+  return true;
+}
+
 function updatePlayer(dt) {
   if (!player) return;
   if (gameOver || win) return;
@@ -667,17 +730,33 @@ function updatePlayer(dt) {
 
   if (dx !== 0 || dy !== 0) {
     const len = Math.hypot(dx, dy) || 1;
-    dx = (dx / len) * player.speed * dt;
-    dy = (dy / len) * player.speed * dt;
-    player.facingX = dx / (Math.abs(dx) + Math.abs(dy) || 1);
-    player.facingY = dy / (Math.abs(dx) + Math.abs(dy) || 1);
+    player.facingX = dx / len;
+    player.facingY = dy / len;
+    const inWater = entityInWater(player);
+    const speedMult = inWater ? 0.4 : 1;
+    dx = (dx / len) * player.speed * speedMult * dt;
+    dy = (dy / len) * player.speed * speedMult * dt;
   }
 
+  // Block movement into password door and show prompt instead
+  if (checkPasswordDoor(dx, dy)) return;
   moveWithCollision(player, dx, dy);
 
-  // Shooting
+  // Breath mechanic
+  if (entityInWater(player)) {
+    player.breath -= dt;
+    if (player.breath <= 0) {
+      player.breath = 0;
+      triggerGameOver("You drowned!");
+    }
+    updateHUD();
+  } else if (player.breath < 8) {
+    player.breath = 8;
+    updateHUD();
+  }
+
   if (player.shootCooldown > 0) player.shootCooldown -= dt;
-  if (keys["j"] && player.shootCooldown <= 0 && player.bullets > 0) {
+  if (keys["j"] && player.shootCooldown <= 0 && player.bullets > 0 && !entityInWater(player)) {
     let fx = player.facingX;
     let fy = player.facingY;
     if (fx === 0 && fy === 0) {
@@ -698,12 +777,20 @@ function updatePlayer(dt) {
     updateHUD();
   }
 
-  // Melee
+  // Melee (allowed in water)
   if (keys["k"] && player.meleeTimer <= 0) {
     player.meleeTimer = 0.15;
   }
   if (player.meleeTimer > 0) {
     player.meleeTimer -= dt;
+  }
+
+  // Parry — allowed in water if scroll acquired
+  if (player.hasMelee && keys["l"] && player.parryTimer <= 0) {
+    player.parryTimer = 0.15;
+  }
+  if (player.parryTimer > 0) {
+    player.parryTimer -= dt;
   }
 
   // Talk (E)
@@ -777,7 +864,8 @@ function hasLineOfSight(ax, ay, bx, by) {
       tile === TILE_FURNITURE2 ||
       tile === TILE_FURNITURE3 ||
       tile === TILE_FURNITURE4 ||
-      tile === TILE_SECRET_DOOR
+      tile === TILE_SECRET_DOOR ||
+      tile === TILE_WATER
     ) {
       return false;
     }
@@ -794,6 +882,8 @@ function updateEnemies(dt) {
     const px = player.x + player.w / 2;
     const py = player.y + player.h / 2;
     let seesPlayer =
+      !entityInWater(player) &&
+      !entityInWater(e) &&
       hasLineOfSight(ex, ey, px, py) &&
       Math.abs(player.x - e.x) < 200 &&
       Math.abs(player.y - e.y) < 200;
@@ -834,12 +924,8 @@ function updateEnemies(dt) {
         moveWithCollision(e, (dx / len) * e.speed * dt, (dy / len) * e.speed * dt);
 
         if (rectsOverlap(e, player)) {
-          player.health -= 30 * dt;
-          if (player.health <= 0) {
-            player.health = 0;
-            triggerGameOver("You are dead...");
-          }
-          updateHUD();
+          damagePlayer(30 * dt);
+          if (player.health <= 0) triggerGameOver("You are dead...");
         }
       }
       if (e.talkTimer > 0) e.talkTimer -= dt;
@@ -859,12 +945,8 @@ function updateEnemies(dt) {
       moveWithCollision(e, vx, vy);
 
       if (rectsOverlap(e, player)) {
-        player.health -= 60 * dt;
-        if (player.health <= 0) {
-          player.health = 0;
-          triggerGameOver("You were kicked to death!");
-        }
-        updateHUD();
+        damagePlayer(60 * dt);
+        if (player.health <= 0) triggerGameOver("You were kicked to death!");
       }
       continue;
     }
@@ -909,6 +991,7 @@ function updateEnemies(dt) {
       }
 
       if (rectsOverlap(e, player)) {
+        player.armor = 0;
         player.health = 0;
         triggerGameOver("The boss has killed you instantly!");
         updateHUD();
@@ -968,7 +1051,10 @@ function updateEnemies(dt) {
       }
       if (e.bullets <= 0) {
         e.isNeutral = true;
-        e.dialog = "η(Eta): Can you really kill me?   χ(Chi): I will if I have to...  η(Eta): I've stopped believing you a long time ago.  χ(Chi):....  η(Eta): You expecting a kiss?  χ(Chi): I'm expecting the word.  η(Eta): 'Sometimes the threat of violence alone is a deterrent.'";
+        if (!secretCode) {
+          secretCode = String(Math.floor(10000 + Math.random() * 90000));
+        }
+        e.dialog = "η(Eta): Can you really kill me?   χ(Chi): I will if I have to...  η(Eta): I've stopped believing you a long time ago.  χ(Chi):....  η(Eta): You expecting a kiss?  χ(Chi): I'm expecting the word.  η(Eta): '" + secretCode + "'";
       }
       continue;
     }
@@ -1018,12 +1104,8 @@ function updateEnemies(dt) {
       moveWithCollision(e, vx, vy);
 
       if (rectsOverlap(e, player)) {
-        player.health -= 30 * dt;
-        if (player.health <= 0) {
-          player.health = 0;
-          triggerGameOver("You are dead...");
-        }
-        updateHUD();
+        damagePlayer(30 * dt);
+        if (player.health <= 0) triggerGameOver("You are dead...");
       }
     }
   }
@@ -1042,6 +1124,12 @@ function updateItems(dt) {
       } else if (it.type === "key") {
         player.hasKey = true;
         setMessage("Got the key!");
+      } else if (it.type === "scroll") {
+        player.hasMelee = true;
+        setMessage("You learned the Parry Technique! Press L to parry incoming projectiles.", 4000);
+      } else if (it.type === "vest") {
+        player.armor = clamp(player.armor + 200, 0, 200);
+        setMessage("Armor vest equipped! +200 armor", 2000);
       }
       it.active = false;
       updateHUD();
@@ -1069,6 +1157,9 @@ function updateBullets(dt) {
     const tx = Math.floor(centerX / TILE_SIZE);
     const ty = Math.floor(centerY / TILE_SIZE);
     const tile = tileAtPixel(centerX, centerY);
+
+      // Bullets dissolve in water
+    if (tileAtPixel(b.x + b.w / 2, b.y + b.h / 2) === TILE_WATER) continue;
 
     if (blocksBullets(tile)) {
       if (tile === TILE_BREAKABLE) {
@@ -1140,13 +1231,12 @@ function updateBullets(dt) {
       }
       if (hitCiv) continue;
     } else if (b.owner === "enemy") {
+      // Bullets dissolve when entering water
+      if (isWaterTile(b.x + b.w / 2, b.y + b.h / 2)) continue;
       if (rectsOverlap(b, player)) {
-        player.health -= 20;
-        if (player.health <= 0) {
-          player.health = 0;
-          triggerGameOver("You were shot down!");
-        }
-        updateHUD();
+        if (entityInWater(player)) continue;
+        damagePlayer(20);
+        if (player.health <= 0) triggerGameOver("You were shot down!");
         continue;
       }
     }
@@ -1154,6 +1244,25 @@ function updateBullets(dt) {
     newBullets.push(b);
   }
   bullets = newBullets;
+}
+
+function inMeleeArc(cx, cy, tx, ty) {
+  const radius = 18;
+  const halfArc = Math.PI / 8; // 22.5 degrees each side = 45 degree arc (1/8 circle)
+  const dx = tx - cx;
+  const dy = ty - cy;
+  const dist = Math.hypot(dx, dy);
+  if (dist >= radius) return false;
+  // Facing angle from facingX/facingY (default right if never moved)
+  const fx = (player.facingX === 0 && player.facingY === 0) ? 1 : player.facingX;
+  const fy = (player.facingX === 0 && player.facingY === 0) ? 0 : player.facingY;
+  const facingAngle = Math.atan2(fy, fx);
+  const targetAngle = Math.atan2(dy, dx);
+  let diff = targetAngle - facingAngle;
+  // Normalize diff to [-PI, PI]
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  return Math.abs(diff) <= halfArc;
 }
 
 function updateMelee(dt) {
@@ -1167,10 +1276,7 @@ function updateMelee(dt) {
   // Damage enemies
   for (const e of enemies) {
     if (!e.alive) continue;
-    const dx = (e.x + e.w / 2) - cx;
-    const dy = (e.y + e.h / 2) - cy;
-    const dist = Math.hypot(dx, dy);
-    if (dist < radius) {
+    if (inMeleeArc(cx, cy, e.x + e.w / 2, e.y + e.h / 2)) {
       e.health -= 30;
       if (e.health <= 0) {
         if (e.behavior === "boss") {
@@ -1196,10 +1302,7 @@ function updateMelee(dt) {
   // Damage civilians
   for (const c of civilians) {
     if (!c.alive) continue;
-    const dx = (c.x + c.w / 2) - cx;
-    const dy = (c.y + c.h / 2) - cy;
-    const dist = Math.hypot(dx, dy);
-    if (dist < radius) {
+    if (inMeleeArc(cx, cy, c.x + c.w / 2, c.y + c.h / 2)) {
       c.alive = false;
       player.morality -= 40;
       setMessage("You've killed a civilian!");
@@ -1211,13 +1314,12 @@ function updateMelee(dt) {
     }
   }
 
-  // Environment interactions
+  // Environment interactions — only in the facing direction
+  const fx = (player.facingX === 0 && player.facingY === 0) ? 1 : player.facingX;
+  const fy = (player.facingX === 0 && player.facingY === 0) ? 0 : player.facingY;
   const tilesToCheck = [
     { x: cx, y: cy },
-    { x: cx - radius, y: cy },
-    { x: cx + radius, y: cy },
-    { x: cx, y: cy - radius },
-    { x: cx, y: cy + radius }
+    { x: cx + fx * radius, y: cy + fy * radius }
   ];
   for (const p of tilesToCheck) {
     const tx = Math.floor(p.x / TILE_SIZE);
@@ -1242,6 +1344,50 @@ function updateMelee(dt) {
     ) {
       setTile(tx, ty, TILE_FLOOR);
     }
+  }
+}
+
+function updateParry(dt) {
+  if (!player) return;
+  if (player.parryTimer <= 0) return;
+
+  const radius = 18;
+  const cx = player.x + player.w / 2;
+  const cy = player.y + player.h / 2;
+  const fx = (player.facingX === 0 && player.facingY === 0) ? 1 : player.facingX;
+  const fy = (player.facingX === 0 && player.facingY === 0) ? 0 : player.facingY;
+  const facingAngle = Math.atan2(fy, fx);
+  const halfArc = Math.PI / 8;
+
+  // Deflect angle: 33 degrees converted to radians, sideways-backward
+  const deflect = 33 * (Math.PI / 180);
+
+  for (const b of bullets) {
+    if (b.owner !== "enemy") continue;
+    const bx = b.x + b.w / 2;
+    const by = b.y + b.h / 2;
+    const ddx = bx - cx;
+    const ddy = by - cy;
+    const dist = Math.hypot(ddx, ddy);
+    if (dist >= radius) continue;
+
+    // Check if bullet is within the parry arc
+    const bulletAngle = Math.atan2(ddy, ddx);
+    let diff = bulletAngle - facingAngle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    if (Math.abs(diff) > halfArc) continue;
+
+    // Deflect: bullet coming from front gets split sideways-backward
+    // Determine which side (left vs right) based on bullet's lateral offset
+    const perpAngle = facingAngle + Math.PI / 2; // left perpendicular
+    const lateralDot = ddx * Math.cos(perpAngle) + ddy * Math.sin(perpAngle);
+    // Deflect to the side the bullet is closer to, angled 33° backward from perpendicular
+    const side = lateralDot >= 0 ? 1 : -1;
+    const newAngle = facingAngle + side * (Math.PI / 2 + deflect);
+    b.dx = Math.cos(newAngle);
+    b.dy = Math.sin(newAngle);
+    b.owner = "player"; // deflected bullets can now harm enemies
   }
 }
 
@@ -1281,13 +1427,19 @@ function triggerGameOver(reason) {
 }
 
 function updateHUD() {
+  const breathStr = entityInWater(player)
+    ? " | 🫧 " + Math.ceil(player.breath) + "s"
+    : "";
   statsDiv.textContent =
     "Health: " +
     Math.round(player.health) +
+    (player.armor > 0 ? " | Armor: " + Math.round(player.armor) : "") +
     " | Morality: " +
     Math.round(player.morality) +
     " | Ammo: " +
     player.bullets +
+    (player.hasMelee ? " | ⚔ Parry" : "") +
+    breathStr +
     " | Level: " +
     (currentLevelIndex + 1);
 }
@@ -1312,10 +1464,39 @@ function drawTile(x, y, t) {
   else if (t === TILE_FURNITURE2) color = "#6a346a";
   else if (t === TILE_FURNITURE3) color = "#6688aa";
   else if (t === TILE_FURNITURE4) color = "#95d952";
-  else if (t === TILE_SECRET_DOOR) color = "#555"
+  else if (t === TILE_SECRET_DOOR) color = "#555";
+  else if (t === TILE_PASSDOOR) color = "#8B0000";
+  else if (t === TILE_WATER) color = "#1a4fa0";
 
   ctx.fillStyle = color;
   ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+  if (t === TILE_WATER) {
+    // Animated wavy lines
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
+    ctx.clip();
+    ctx.strokeStyle = "rgba(100, 180, 255, 0.55)";
+    ctx.lineWidth = 1;
+    const waveRows = 3;
+    for (let r = 0; r < waveRows; r++) {
+      const wy = y + 3 + r * 5;
+      const phase = waveTime * 2.5 + x * 0.4 + r * 1.2;
+      ctx.beginPath();
+      for (let wx = x; wx <= x + TILE_SIZE; wx += 2) {
+        const sy2 = wy + Math.sin((wx - x) * 0.8 + phase) * 1.5;
+        if (wx === x) ctx.moveTo(wx, sy2);
+        else ctx.lineTo(wx, sy2);
+      }
+      ctx.stroke();
+    }
+    // Subtle shimmer overlay
+    const shimmer = 0.08 + 0.06 * Math.sin(waveTime * 3 + x * 0.3 + y * 0.3);
+    ctx.fillStyle = `rgba(140, 210, 255, ${shimmer})`;
+    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+    ctx.restore();
+  }
 
   if (t === TILE_BREAKABLE) {
     const tx = x / TILE_SIZE;
@@ -1329,6 +1510,12 @@ function drawTile(x, y, t) {
       ctx.lineTo(x + TILE_SIZE - 2, y + TILE_SIZE - 2);
       ctx.stroke();
     }
+  }
+  if (t === TILE_PASSDOOR) {
+    ctx.strokeStyle = "#ff4444";
+    ctx.font = "7px monospace";
+    ctx.fillStyle = "#ffaaaa";
+    ctx.fillText("?", x + 5, y + TILE_SIZE - 4);
   }
 }
 
@@ -1350,9 +1537,20 @@ function draw() {
   for (const it of items) {
     if (!it.active) continue;
 
+    if (isWaterTile(it.x + it.w / 2, it.y + it.h / 2)) {
+      ctx.save();
+      ctx.filter = "blur(1.5px)";
+      ctx.fillStyle = "rgba(0,20,60,0.82)";
+      ctx.fillRect(it.x, it.y, it.w, it.h);
+      ctx.restore();
+      continue;
+    }
+
     if (it.type === "health") ctx.fillStyle = "#55ff5500";
     else if (it.type === "ammo") ctx.fillStyle = "#ffff5500";
     else if (it.type === "key") ctx.fillStyle = "#b4000000";
+    else if (it.type === "scroll") ctx.fillStyle = "rgba(180, 140, 60, 0.5)";
+    else if (it.type === "vest") ctx.fillStyle = "rgba(80, 160, 80, 0.6)";
     ctx.fillRect(it.x, it.y, it.w, it.h);
 
     ctx.fillStyle = "#000000";
@@ -1363,18 +1561,32 @@ function draw() {
       ctx.fillText("💥", it.x + 3, it.y + it.h - 2);
     } else if (it.type === "key") {
       ctx.fillText("🔑", it.x, it.y + it.h - 2);
+    } else if (it.type === "scroll") {
+      ctx.fillStyle = "#ffe090";
+      ctx.fillText("📜", it.x, it.y + it.h - 2);
+    } else if (it.type === "vest") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("🦺", it.x, it.y + it.h - 2);
     }
   }
 
   // Civilians
   for (const c of civilians) {
     if (!c.alive) continue;
-    ctx.fillStyle = c.gender === "female" ? "#ff9aee" : "#97a7cc";
-    ctx.fillRect(c.x, c.y, c.w, c.h);
-    if (c.talkTimer > 0) {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "6px monospace";
-      ctx.fillText("!!!", c.x - 2, c.y - 4);
+    if (entityInWater(c)) {
+      ctx.save();
+      ctx.filter = "blur(1.5px)";
+      ctx.fillStyle = "rgba(0,20,60,0.82)";
+      ctx.fillRect(c.x, c.y, c.w, c.h);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = c.gender === "female" ? "#ff9aee" : "#97a7cc";
+      ctx.fillRect(c.x, c.y, c.w, c.h);
+      if (c.talkTimer > 0) {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "6px monospace";
+        ctx.fillText("!!!", c.x - 2, c.y - 4);
+      }
     }
   }
 
@@ -1382,59 +1594,104 @@ function draw() {
   for (const e of enemies) {
     if (!e.alive) continue;
 
-    let color = "#c71a1a";
-    if (e.behavior === "patrol") color = "#ff2222";
-    else if (e.behavior === "losPatrol") color = "#800000";
-    else if (e.behavior === "kicker") color = "#ffe258";
-    else if (e.behavior === "boss") color = e.isNeutral ? "#6d6d6d" : "#b2b2b2";
-    else if (e.behavior === "shooter") color = e.isNeutral ? "#834b83" : "#800080";
-    else if (e.behavior === "shotShooter") color = e.isNeutral ? "#c47a00" : "#ff8c00";
+    if (entityInWater(e)) {
+      ctx.save();
+      ctx.filter = "blur(1.5px)";
+      ctx.fillStyle = "rgba(0,20,60,0.82)";
+      ctx.fillRect(e.x, e.y, e.w, e.h);
+      ctx.restore();
+    } else {
+      let color = "#c71a1a";
+      if (e.behavior === "patrol") color = "#ff2222";
+      else if (e.behavior === "losPatrol") color = "#800000";
+      else if (e.behavior === "kicker") color = "#ffe258";
+      else if (e.behavior === "boss") color = e.isNeutral ? "#6d6d6d" : "#b2b2b2";
+      else if (e.behavior === "shooter") color = e.isNeutral ? "#834b83" : "#800080";
+      else if (e.behavior === "shotShooter") color = e.isNeutral ? "#c47a00" : "#ff8c00";
 
-    ctx.fillStyle = color;
-    ctx.fillRect(e.x, e.y, e.w, e.h);
+      ctx.fillStyle = color;
+      ctx.fillRect(e.x, e.y, e.w, e.h);
 
- if (e.behavior === "boss") 
-   ctx.fillStyle = "#ff0000";
-  ctx.font = "8px monospace";
-  ctx.fillText("α", e.x + 4, e.y + e.h - 4.5 ); 
+      if (e.behavior === "boss")
+        ctx.fillStyle = "#ff0000";
+      ctx.font = "8px monospace";
+      ctx.fillText("α", e.x + 4, e.y + e.h - 4.5);
 
- if (e.behavior === "shooter") 
-   ctx.fillStyle = "#dbcc00";
-  ctx.font = "8px monospace";
-  ctx.fillText("η", e.x + 4, e.y + e.h - 4.5 ); 
+      if (e.behavior === "shooter")
+        ctx.fillStyle = "#dbcc00";
+      ctx.font = "8px monospace";
+      ctx.fillText("η", e.x + 4, e.y + e.h - 4.5);
 
- if (e.behavior === "shotShooter")
-   ctx.fillStyle = "#000000";
-  ctx.font = "8px monospace";
-  ctx.fillText("σ", e.x + 4, e.y + e.h - 4.5 );
+      if (e.behavior === "shotShooter")
+        ctx.fillStyle = "#000000";
+      ctx.font = "8px monospace";
+      ctx.fillText("σ", e.x + 4, e.y + e.h - 4.5);
 
-
-    if (e.talkTimer > 0 && e.isNeutral && (e.behavior === "shooter" || e.behavior === "shotShooter" || e.behavior === "boss")) {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "6px monospace";
-      ctx.fillText("!!!", e.x - 2, e.y - 4);
+      if (e.talkTimer > 0 && e.isNeutral && (e.behavior === "shooter" || e.behavior === "shotShooter" || e.behavior === "boss")) {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "6px monospace";
+        ctx.fillText("!!!", e.x - 2, e.y - 4);
+      }
     }
   }
 
   // Player
   if (player) {
-    ctx.fillStyle = "#436fff";
-    ctx.fillRect(player.x, player.y, player.w, player.h);
-    ctx.fillStyle = "#000000";
-    ctx.font = "8px monospace";
-    ctx.fillText("χ", player.x + 4, player.y + player.h - 5);
+    if (entityInWater(player)) {
+      ctx.save();
+      ctx.filter = "blur(1.5px)";
+      ctx.fillStyle = "rgba(0,20,60,0.82)";
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = "#436fff";
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+      ctx.fillStyle = player.hasMelee ? "#ffd700" : "#000000";
+      ctx.font = "8px monospace";
+      ctx.fillText("χ", player.x + 4, player.y + player.h - 5);
 
-    if (player.meleeTimer > 0) {
-      ctx.strokeStyle = "rgba(71, 154, 181, 0.6)";
+    if (player.hasMelee) {
+      const c = 3;
+      const x = player.x, y = player.y, w = player.w, h = player.h;
+      ctx.strokeStyle = "#ffd700";
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(
-        player.x + player.w / 2,
-        player.y + player.h / 2,
-        18,
-        0,
-        Math.PI * 2
-      );
+      ctx.moveTo(x, y + c); ctx.lineTo(x, y); ctx.lineTo(x + c, y);
+      ctx.moveTo(x + w - c, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + c);
+      ctx.moveTo(x + w, y + h - c); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w - c, y + h);
+      ctx.moveTo(x + c, y + h); ctx.lineTo(x, y + h); ctx.lineTo(x, y + h - c);
       ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    }
+
+    if (player.meleeTimer > 0 || player.parryTimer > 0) {
+      const cx = player.x + player.w / 2;
+      const cy = player.y + player.h / 2;
+      const fx = (player.facingX === 0 && player.facingY === 0) ? 1 : player.facingX;
+      const fy = (player.facingX === 0 && player.facingY === 0) ? 0 : player.facingY;
+      const facingAngle = Math.atan2(fy, fx);
+      const halfArc = Math.PI / 8;
+      if (player.meleeTimer > 0) {
+        ctx.strokeStyle = "rgba(255, 220, 0, 0.9)";
+        ctx.fillStyle = "rgba(255, 220, 0, 0.3)";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, 18, facingAngle - halfArc, facingAngle + halfArc);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      if (player.parryTimer > 0) {
+        ctx.strokeStyle = "rgba(71, 154, 181, 0.9)";
+        ctx.fillStyle = "rgba(71, 154, 181, 0.3)";
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, 18, facingAngle - halfArc, facingAngle + halfArc);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
     }
   }
 
@@ -1450,11 +1707,14 @@ function update(dt) {
   if (!player) return;
   if (gameOver || win) return;
 
+  if (passDoorPromptCooldown > 0) passDoorPromptCooldown -= dt;
+  waveTime += dt;
   updatePlayer(dt);
   updateCivilians(dt);
   updateEnemies(dt);
   updateItems(dt);
   updateMelee(dt);
+  updateParry(dt);
   updateBullets(dt);
   checkDoorAndGoal();
 }
