@@ -28,6 +28,7 @@ const TILE_FURNITURE4 = 8;
 const TILE_SECRET_DOOR = 9;
 const TILE_PASSDOOR = 10;
 const TILE_WATER = 11;
+const TILE_LIGHT = 12;
 
 const keys = {};
 window.addEventListener("keydown", e => {
@@ -61,9 +62,11 @@ let player;
 let bullets = [];
 let enemies = [];
 let civilians = [];
+let oracles = [];
 let items = [];
 let currentLevelIndex = 0;
 let tilemap = [];
+let levelUsesLighting = false;
 // key: "x,y" -> { bulletHits }
 let breakableState = {};
 let secretCode = null; // generated when shooter goes neutral
@@ -80,7 +83,7 @@ function createPlayer(x, y) {
     w: 12,
     h: 12,
     speed: 80,
-    bullets: 10,//0,
+    bullets: 500,//0,
     health: 500,//100,
     morality: 140,//140,
     hasKey: false,
@@ -91,7 +94,8 @@ function createPlayer(x, y) {
     breath: 8,
     meleeTimer: 0,
     parryTimer: 0,
-    shootCooldown: 0
+    shootCooldown: 0,
+    talkCooldown: 0
   };
 }
 
@@ -161,6 +165,19 @@ function createCivilian(x, y, dialog, gender = "male") {
   };
 }
 
+function createOracle(x, y) {
+  return {
+    x,
+    y,
+    w: 11,
+    h: 11,
+    alive: true,
+    talkTimer: 0,
+    answered: false,   // true once player has responded
+    accepted: false    // true if player said yes
+  };
+}
+
 function createItem(x, y, type) {
   return {
     x,
@@ -190,7 +207,8 @@ function createBullet(x, y, dx, dy, owner) {
 // Simple 20x11 maps (MAP_COLS=20, MAP_ROWS=11)
 // Secret password:  One sword keeps another in the sheath. Sometimes the threat of violence alone is a deterrent. 
 const level1 = {
-  playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
+  useLighting: false,
+  playerStart: { x: 52 * TILE_SIZE, y: 22 * TILE_SIZE },
   map: [      // map size x = 69 tile  y = 31 tile
   // 1 Wall
   // 2 Breakable wall
@@ -207,24 +225,24 @@ const level1 = {
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,11,11,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,11,11,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,1],
-    [1,9,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,0,0,0,0,2,0,0,0,6,0,7,0,6,0,7,0,6,0,7,0,6,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,2,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,7,0,0,0,2,0,0,0,0,0,1],
-    [1,9,9,9,1,1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,0,1,0,0,0,9,0,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,1,0,0,0,1,0,0,1,0,0,0,0,2,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,9,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,2,1,0,0,0,1,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,2,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,7,0,0,0,2,0,0,0,0,0,1],
-    [1,1,1,0,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,7,1,1,1,1,1,1,1,1,0,0,1,0,0,0,0,2,0,0,0,6,0,7,0,6,0,7,0,6,0,7,0,6,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,0,1,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1],
-    [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,1],
-    [1,1,1,9,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1],
+    [1,9,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,10,11,11,1,2,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,1,2,0,0,0,0,0,0,0,0,0,0,0,1,11,0,0,0,11,9,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,1,2,0,11,11,11,11,11,11,11,11,11,11,1,11,0,7,0,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,11,1,11,1,2,0,11,0,6,0,7,0,6,0,7,0,1,11,0,0,0,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,11,1,11,1,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,1,11,1,0,0,0,0,0,1],
+    [1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,11,1,11,1,2,0,11,0,7,0,0,0,0,0,0,0,1,1,1,1,1,9,9,11,1,0,0,0,0,0,1],
+    [1,9,9,9,1,1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,1,11,1,11,1,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,9,11,1,11,1,0,0,0,0,0,1],
+    [1,0,1,0,0,0,9,0,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,1,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,6,0,0,0,0,0,0,0,1,9,1,1,1,1,1,11,1,0,0,0,0,0,1],
+    [1,9,1,9,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,2,1,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,9,11,1,1,1,0,0,0,0,0,1],
+    [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,7,0,0,0,0,0,0,0,1,1,1,1,11,11,9,11,1,0,0,0,0,0,1],
+    [1,1,1,0,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,1,1,1,11,1,0,0,0,0,0,1],
+    [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,7,1,1,1,1,1,1,1,1,0,0,1,11,11,1,11,5,0,11,0,6,0,7,0,6,0,7,0,11,11,1,11,1,11,11,11,1,0,0,0,0,0,1],
+    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,1,1,0,11,0,0,0,0,0,0,0,0,0,1,11,1,11,11,1,1,9,1,0,0,0,0,0,1],
+    [1,0,1,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,0,11,11,11,11,11,11,11,11,11,11,1,11,11,11,1,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,9,11,11,11,1,0,0,0,0,0,1],
+    [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,11,11,11,11,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1],
+    [1,1,1,9,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,9,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,9,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,7,6,7,0,0,0,0,1],
@@ -298,6 +316,9 @@ const level1 = {
 { x: 1 * TILE_SIZE, y: 21 * TILE_SIZE, text: "She is tied down and never talks. They keep her in that secret room.", gender: "male" },
 { x: 1 * TILE_SIZE, y: 23 * TILE_SIZE, text: "She wants you dead. You have to kill her!  χ(Chi): I just can't.", gender: "female" },
 { x: 7 * TILE_SIZE, y: 15 * TILE_SIZE, text: "Thank you. That was claustrophobic. There are others. Please help them!", gender: "female" }
+  ],
+  oracles: [
+    { x: 53 * TILE_SIZE, y: 15 * TILE_SIZE }
   ],
   enemies: [
     /*
@@ -431,6 +452,7 @@ const level1 = {
 { x: 51 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" }  ,
 { x: 53 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" } ,
 { x: 55 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" }   ,
+{ x: 52 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losPatrol" }   ,
 
 
 { x: 5 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "shotShooter" } 
@@ -463,13 +485,14 @@ const level1 = {
     */
      { x: 11 * TILE_SIZE, y: 30 * TILE_SIZE, type: "ammo" },
      { x: 11 * TILE_SIZE, y: 27 * TILE_SIZE, type: "health" },
-     { x: 30 * TILE_SIZE, y: 5 * TILE_SIZE, type: "scroll" },
-     { x: 18 * TILE_SIZE, y: 3 * TILE_SIZE, type: "vest" }
-
+    // since oracle character added this is not needed anymore { x: 30 * TILE_SIZE, y: 5 * TILE_SIZE, type: "scroll" },
+     { x: 18 * TILE_SIZE, y: 3 * TILE_SIZE, type: "vest" },
+     { x: 31 * TILE_SIZE, y: 18 * TILE_SIZE, type: "key" },
   ]
 };
 
 const level2 = {
+  useLighting: false,
   playerStart: { x: 2 * TILE_SIZE, y: 27 * TILE_SIZE },
   
   map: [
@@ -500,7 +523,7 @@ const level2 = {
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -521,37 +544,174 @@ const level2 = {
 };
 
 const level3 = {
+  useLighting: true,
   playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
+  // Dark facility — tile 12 = light source (destroyable lantern)
   map: [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,5,0,0,0,1,0,0,0,0,0,0,0,0,0,4,0,1],
-    [1,0,6,5,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,5,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,5,0,0,1,0,0,0,0,0,1],
-    [1,0,6,0,0,0,1,1,1,0,0,0,0,1,1,1,0,7,0,1],
-    [1,0,0,0,0,0,1,0,0,0,6,0,0,1,0,0,0,0,0,1],
-    [1,0,0,0,5,0,1,0,0,0,0,0,0,1,0,7,0,0,0,1],
-    [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
-    [1,0,0,0,0,0,1,0,0,0,0,6,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,3,0,0,0,0,1,0,0,12,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+    [1,0,0,12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,12,0,0,1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+    [1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,12,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,1],
+    [1,0,12,0,0,0,0,0,0,0,0,0,0,0,0,12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
   ],
-  civilians: [],
+  civilians: [
+    { x: 30 * TILE_SIZE, y: 4 * TILE_SIZE, text: "It's pitch black in here... shoot the lanterns to create shadows you can hide in.", gender: "male" }
+  ],
   enemies: [
-    { x: 12 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losShooter" },
-    { x: 15 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "patrol" }
+    { x: 15 * TILE_SIZE, y: 2 * TILE_SIZE, behavior: "losPatrol" },
+    { x: 28 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "losShooter" },
+    { x: 6  * TILE_SIZE, y: 9 * TILE_SIZE, behavior: "patrol" },
+    { x: 20 * TILE_SIZE, y: 9 * TILE_SIZE, behavior: "losShooter" },
+    { x: 33 * TILE_SIZE, y: 8 * TILE_SIZE, behavior: "losPatrol" },
+    { x: 10 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losShooter" },
+    { x: 25 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losPatrol" },
+    { x: 36 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losShooter" }
   ],
   items: [
-    { x: 4 * TILE_SIZE, y: 5 * TILE_SIZE, type: "health" },
-    { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, type: "ammo" }
+    { x: 4  * TILE_SIZE, y: 2 * TILE_SIZE, type: "health" },
+    { x: 17 * TILE_SIZE, y: 9 * TILE_SIZE, type: "ammo" },
+    { x: 32 * TILE_SIZE, y: 13 * TILE_SIZE, type: "health" }
   ]
 };
 
-const levels = [level1, level2, level3];
+const level4 = {
+  useLighting: false,
+  playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
+  // Urban compound — multiple interconnected rooms, breakable walls, shotgunners
+  map: [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,3,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,5,0,0,0,0,1,0,0,0,5,0,0,0,0,0,1,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,6,0,0,0,0,0,6,0,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,7,0,0,0,7,0,0,0,7,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,5,0,0,0,5,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  ],
+  civilians: [
+    { x: 38 * TILE_SIZE, y: 2 * TILE_SIZE, text: "There's a room sealed by breakable walls up ahead. Shoot through them!", gender: "male" },
+    { x: 4  * TILE_SIZE, y: 19 * TILE_SIZE, text: "I heard the exit is guarded by the shotgunner. Be careful!", gender: "female" }
+  ],
+  enemies: [
+    { x: 6  * TILE_SIZE, y: 2  * TILE_SIZE, behavior: "losShooter" },
+    { x: 14 * TILE_SIZE, y: 2  * TILE_SIZE, behavior: "losShooter" },
+    { x: 25 * TILE_SIZE, y: 4  * TILE_SIZE, behavior: "patrol" },
+    { x: 5  * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "losPatrol" },
+    { x: 15 * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "losPatrol" },
+    { x: 40 * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "losShooter" },
+    { x: 8  * TILE_SIZE, y: 14 * TILE_SIZE, behavior: "losShooter" },
+    { x: 20 * TILE_SIZE, y: 14 * TILE_SIZE, behavior: "patrol" },
+    { x: 45 * TILE_SIZE, y: 14 * TILE_SIZE, behavior: "shotShooter" },
+    { x: 10 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losPatrol" },
+    { x: 25 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" },
+    { x: 38 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "kicker" },
+    { x: 44 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losShooter" }
+  ],
+  items: [
+    { x: 2  * TILE_SIZE, y: 19 * TILE_SIZE, type: "health" },
+    { x: 12 * TILE_SIZE, y: 19 * TILE_SIZE, type: "ammo" },
+    { x: 35 * TILE_SIZE, y: 8  * TILE_SIZE, type: "ammo" },
+    { x: 47 * TILE_SIZE, y: 14 * TILE_SIZE, type: "health" }
+  ]
+};
+
+const level5 = {
+  useLighting: false,
+  playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
+  // Final stronghold — dense rooms, boss, goal tile
+  map: [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,4,1,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,3,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,6,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,6,0,0,0,6,0,0,0,6,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,7,0,0,0,7,0,0,0,7,0,0,0,7,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,5,0,0,5,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  ],
+  civilians: [
+    { x: 42 * TILE_SIZE, y: 2  * TILE_SIZE, text: "He's in the deepest room. Don't let your guard down.", gender: "male" },
+    { x: 5  * TILE_SIZE, y: 18 * TILE_SIZE, text: "χ(Chi): I didn't come this far to fail now.", gender: "female" }
+  ],
+  enemies: [
+    { x: 5  * TILE_SIZE, y: 2  * TILE_SIZE, behavior: "losShooter" },
+    { x: 14 * TILE_SIZE, y: 2  * TILE_SIZE, behavior: "losShooter" },
+    { x: 24 * TILE_SIZE, y: 3  * TILE_SIZE, behavior: "patrol" },
+    { x: 36 * TILE_SIZE, y: 2  * TILE_SIZE, behavior: "losShooter" },
+    { x: 6  * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "losPatrol" },
+    { x: 16 * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "losPatrol" },
+    { x: 28 * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "losShooter" },
+    { x: 40 * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "shotShooter" },
+    { x: 50 * TILE_SIZE, y: 8  * TILE_SIZE, behavior: "losShooter" },
+    { x: 5  * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "kicker" },
+    { x: 15 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losShooter" },
+    { x: 27 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losPatrol" },
+    { x: 38 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "shotShooter" },
+    { x: 50 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "kicker" },
+    { x: 8  * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losShooter" },
+    { x: 20 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losPatrol" },
+    { x: 32 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losShooter" },
+    { x: 45 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "boss" }
+  ],
+  items: [
+    { x: 2  * TILE_SIZE, y: 7  * TILE_SIZE, type: "health" },
+    { x: 2  * TILE_SIZE, y: 12 * TILE_SIZE, type: "ammo" },
+    { x: 30 * TILE_SIZE, y: 7  * TILE_SIZE, type: "health" },
+    { x: 30 * TILE_SIZE, y: 18 * TILE_SIZE, type: "ammo" },
+    { x: 50 * TILE_SIZE, y: 18 * TILE_SIZE, type: "health" },
+    { x: 42 * TILE_SIZE, y: 18 * TILE_SIZE, type: "vest" }
+  ]
+};
+
+const levels = [level1, level2, level3, level4, level5];
 
 function loadLevel(index) {
   currentLevelIndex = index;
   const lvl = levels[index];
   tilemap = lvl.map.map(row => row.slice());
+  levelUsesLighting = lvl.useLighting || false;
   breakableState = {};
   bullets = [];
 
@@ -563,6 +723,7 @@ function loadLevel(index) {
   civilians = lvl.civilians.map(c =>
     createCivilian(c.x, c.y, c.text, c.gender)
   );
+  oracles = (lvl.oracles || []).map(o => createOracle(o.x, o.y));
   items = lvl.items.map(i => createItem(i.x, i.y, i.type));
 
   setMessage("Level " + (index + 1));
@@ -592,7 +753,8 @@ function isSolidForMovement(tile) {
     tile === TILE_FURNITURE3 ||
     tile === TILE_FURNITURE4 ||
     tile === TILE_SECRET_DOOR ||
-    tile === TILE_PASSDOOR
+    tile === TILE_PASSDOOR ||
+    tile === TILE_LIGHT
   );
 }
 
@@ -794,7 +956,9 @@ function updatePlayer(dt) {
   }
 
   // Talk (E)
-  if (keys["e"]) {
+  if (player.talkCooldown > 0) player.talkCooldown -= dt;
+  if (keys["e"] && player.talkCooldown <= 0) {
+    player.talkCooldown = 0.4;
     talkToCivilian();
   }
 }
@@ -809,6 +973,38 @@ function talkToCivilian() {
     if (dist < 24) {
       c.talkTimer = 1.5;
       setMessage(c.dialog);
+      break;
+    }
+  }
+  // Talk to oracles
+  for (const o of oracles) {
+    if (!o.alive) continue;
+    if (o.answered) continue;
+    const dx = o.x - player.x;
+    const dy = o.y - player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 24) {
+      o.talkTimer = 1.5;
+      setMessage("??? : I am the reason why you are here. I am standing right before death.", 3000);
+      // Defer prompt slightly so message renders first
+      setTimeout(() => {
+        lastTime = 0;
+        for (const k in keys) keys[k] = false;
+        const answer = confirm("I am the reason why you are here. I am standing right before the death.\nWould you give me a part of your life?\n\n(You will lose 2/3 of your health)");
+        lastTime = 0;
+        for (const k in keys) keys[k] = false;
+        o.answered = true;
+        if (answer) {
+          o.accepted = true;
+          player.health = Math.max(1, Math.floor(player.health / 3));
+          updateHUD();
+          // Spawn a scroll at the oracle's feet
+          items.push(createItem(o.x + 5 * TILE_SIZE, o.y - 5 * TILE_SIZE, "scroll"));
+          setMessage("??? : ... Take it.", 3000);
+        } else {
+          setMessage("??? : I was expecting better than that.", 3000);
+        }
+      }, 80);
       break;
     }
   }
@@ -845,6 +1041,13 @@ function updateCivilians(dt) {
     }
     moveWithCollision(c, c.vx * dt, c.vy * dt);
     if (c.talkTimer > 0) c.talkTimer -= dt;
+  }
+}
+
+function updateOracles(dt) {
+  for (const o of oracles) {
+    if (!o.alive) continue;
+    if (o.talkTimer > 0) o.talkTimer -= dt;
   }
 }
 
@@ -1054,7 +1257,7 @@ function updateEnemies(dt) {
         if (!secretCode) {
           secretCode = String(Math.floor(10000 + Math.random() * 90000));
         }
-        e.dialog = "η(Eta): Can you really kill me?   χ(Chi): I will if I have to...  η(Eta): I've stopped believing you a long time ago.  χ(Chi):....  η(Eta): You expecting a kiss?  χ(Chi): I'm expecting the word.  η(Eta): '" + secretCode + "'";
+        e.dialog = "η(Eta): Can you really kill me?   χ(Chi): I will if I have to...  η(Eta): I've stopped believing you a long time ago.  χ(Chi):....  η(Eta): You expecting a kiss?  χ(Chi): I'm expecting the code.  η(Eta): It's '" + secretCode + "'.";
       }
       continue;
     }
@@ -1177,7 +1380,8 @@ function updateBullets(dt) {
         tile === TILE_FURNITURE2 ||
         tile === TILE_FURNITURE3 ||
         tile === TILE_FURNITURE4 ||
-        tile === TILE_SECRET_DOOR) &&
+        tile === TILE_SECRET_DOOR ||
+        tile === TILE_LIGHT) &&
       b.owner === "player"
     ) {
       setTile(tx, ty, TILE_FLOOR);
@@ -1340,7 +1544,8 @@ function updateMelee(dt) {
       tile === TILE_FURNITURE2 ||
       tile === TILE_FURNITURE3 ||
       tile === TILE_FURNITURE4 ||
-      tile === TILE_SECRET_DOOR
+      tile === TILE_SECRET_DOOR ||
+      tile === TILE_LIGHT
     ) {
       setTile(tx, ty, TILE_FLOOR);
     }
@@ -1467,9 +1672,67 @@ function drawTile(x, y, t) {
   else if (t === TILE_SECRET_DOOR) color = "#555";
   else if (t === TILE_PASSDOOR) color = "#8B0000";
   else if (t === TILE_WATER) color = "#1a4fa0";
+  else if (t === TILE_LIGHT) color = "#2a2010";
 
   ctx.fillStyle = color;
   ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+  if (t === TILE_WALL || t === TILE_SECRET_DOOR) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
+    ctx.clip();
+
+    // Pseudo-random seed from tile position for deterministic noise
+    const seed = (x * 7 + y * 13) & 0xffff;
+    const rng = (n) => ((seed * 1664525 + n * 22695477 + 1013904223) & 0x7fffffff) / 0x7fffffff;
+
+    // Subtle aggregate speckles
+    for (let i = 0; i < 6; i++) {
+      const sx = x + rng(i * 3)     * TILE_SIZE;
+      const sy = y + rng(i * 3 + 1) * TILE_SIZE;
+      const sr = 0.5 + rng(i * 3 + 2) * 1.2;
+      const bright = rng(i) > 0.5 ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)";
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fillStyle = bright;
+      ctx.fill();
+    }
+
+    // Mortar lines — horizontal block seam every 8px, offset every other column
+    const colEven = Math.floor(x / TILE_SIZE) % 2 === 0;
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 0.75;
+    // Horizontal seam
+    const seamY = y + (colEven ? 5 : 10);
+    ctx.beginPath();
+    ctx.moveTo(x, seamY);
+    ctx.lineTo(x + TILE_SIZE, seamY);
+    ctx.stroke();
+    // Vertical half-seam (brick offset)
+    const seamX = x + (colEven ? TILE_SIZE / 2 : TILE_SIZE / 4);
+    ctx.beginPath();
+    ctx.moveTo(seamX, y);
+    ctx.lineTo(seamX, seamY);
+    ctx.stroke();
+
+    // Edge highlight (top/left) and shadow (bottom/right) for depth
+    ctx.strokeStyle = "rgba(255,255,255,0.07)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + TILE_SIZE);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x + TILE_SIZE, y);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,0.2)";
+    ctx.beginPath();
+    ctx.moveTo(x + TILE_SIZE, y);
+    ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE);
+    ctx.lineTo(x, y + TILE_SIZE);
+    ctx.stroke();
+
+    ctx.restore();
+  }
 
   if (t === TILE_WATER) {
     // Animated wavy lines
@@ -1503,19 +1766,83 @@ function drawTile(x, y, t) {
     const ty = y / TILE_SIZE;
     const key = tx + "," + ty;
     const state = breakableState[key];
-    if (state && state.bulletHits >= 5) {
-      ctx.strokeStyle = "#331100";
+    const damaged = state && state.bulletHits >= 5;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
+    ctx.clip();
+
+    // Wood grain lines — horizontal planks
+    const grainColor = damaged ? "#7a4422" : "#6b3318";
+    const grainLight = damaged ? "#c08855" : "#a05c30";
+    ctx.strokeStyle = grainColor;
+    ctx.lineWidth = 1;
+    // Three horizontal plank lines
+    for (let i = 1; i <= 3; i++) {
+      const gy = y + Math.floor(TILE_SIZE * i / 4);
       ctx.beginPath();
-      ctx.moveTo(x + 2, y + 2);
-      ctx.lineTo(x + TILE_SIZE - 2, y + TILE_SIZE - 2);
+      ctx.moveTo(x, gy);
+      ctx.lineTo(x + TILE_SIZE, gy);
       ctx.stroke();
     }
+    // Subtle vertical grain streaks
+    ctx.strokeStyle = grainLight;
+    ctx.lineWidth = 0.5;
+    const grainOffsets = [2, 5, 9, 13];
+    for (const gx of grainOffsets) {
+      ctx.beginPath();
+      ctx.moveTo(x + gx, y);
+      ctx.lineTo(x + gx + 1, y + TILE_SIZE);
+      ctx.stroke();
+    }
+    // Knot
+    ctx.strokeStyle = grainColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(x + 10, y + 6, 2, 1.5, 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (damaged) {
+      // Crack lines when ready to break
+      ctx.strokeStyle = "#1a0800";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 2, y + 2);
+      ctx.lineTo(x + 7, y + 9);
+      ctx.lineTo(x + 5, y + TILE_SIZE - 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + TILE_SIZE - 3, y + 3);
+      ctx.lineTo(x + TILE_SIZE - 6, y + 8);
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }
   if (t === TILE_PASSDOOR) {
     ctx.strokeStyle = "#ff4444";
     ctx.font = "7px monospace";
     ctx.fillStyle = "#ffaaaa";
-    ctx.fillText("?", x + 5, y + TILE_SIZE - 4);
+    ctx.fillText("🔒", x + 3, y + TILE_SIZE - 5);
+  }
+  if (t === TILE_LIGHT) {
+    // Lantern body
+    const cx = x + TILE_SIZE / 2;
+    const cy = y + TILE_SIZE / 2;
+    const flicker = 0.7 + 0.3 * Math.sin(waveTime * 8 + cx * 0.3 + cy * 0.3);
+    // Outer glow halo on tile
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, TILE_SIZE * 0.7);
+    grad.addColorStop(0, `rgba(255, 220, 80, ${0.8 * flicker})`);
+    grad.addColorStop(0.4, `rgba(255, 140, 20, ${0.4 * flicker})`);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+    // Lantern icon dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 245, 180, ${flicker})`;
+    ctx.fill();
   }
 }
 
@@ -1587,6 +1914,22 @@ function draw() {
         ctx.font = "6px monospace";
         ctx.fillText("!!!", c.x - 2, c.y - 4);
       }
+    }
+  }
+
+  // Oracles
+  for (const o of oracles) {
+    if (!o.alive) continue;
+    const pulse = 0.7 + 0.3 * Math.sin(waveTime * 4);
+    ctx.fillStyle = `rgba(255, 230, 0, ${pulse})`;
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.fillStyle = "#000";
+    ctx.font = "8px monospace";
+    ctx.fillText("?", o.x + 3, o.y + o.h - 3);
+    if (!o.answered) {
+      ctx.fillStyle = "#fff700";
+      ctx.font = "6px monospace";
+      ctx.fillText("E", o.x + 3, o.y - 3);
     }
   }
 
@@ -1700,6 +2043,71 @@ function draw() {
   for (const b of bullets) {
     ctx.fillRect(b.x, b.y, b.w, b.h);
   }
+
+  // Lighting overlay — darken everything, punch holes for light tiles and player
+  if (levelUsesLighting) drawLightingOverlay();
+}
+
+function drawLightingOverlay() {
+  // Collect all active light sources
+  const sources = [];
+
+  // Light tiles
+  const rows = tilemap.length;
+  for (let ty = 0; ty < rows; ty++) {
+    const row = tilemap[ty];
+    if (!row) continue;
+    for (let tx = 0; tx < row.length; tx++) {
+      if (row[tx] === TILE_LIGHT) {
+        const flicker = 0.85 + 0.15 * Math.sin(waveTime * 9 + tx * 0.7 + ty * 1.1);
+        sources.push({
+          x: tx * TILE_SIZE + TILE_SIZE / 2,
+          y: ty * TILE_SIZE + TILE_SIZE / 2,
+          r: 68 * flicker,
+          color: "rgba(255, 200, 60,"
+        });
+      }
+    }
+  }
+
+  // Player always has a small ambient glow so they can see themselves
+  if (player) {
+    sources.push({
+      x: player.x + player.w / 2,
+      y: player.y + player.h / 2,
+      r: 40,
+      color: "rgba(120, 160, 255,"
+    });
+  }
+
+  if (sources.length === 0) return;
+
+  // Build the overlay using destination-out compositing to cut holes in the dark layer
+  const offscreen = document.createElement("canvas");
+  offscreen.width = canvas.width;
+  offscreen.height = canvas.height;
+  const oc = offscreen.getContext("2d");
+
+  // Fill with darkness
+  oc.fillStyle = "rgba(0, 0, 0, 0.72)";
+  oc.fillRect(0, 0, offscreen.width, offscreen.height);
+
+  // Punch transparent radial holes for each light source
+  oc.globalCompositeOperation = "destination-out";
+  for (const src of sources) {
+    const grad = oc.createRadialGradient(src.x, src.y, 0, src.x, src.y, src.r);
+    grad.addColorStop(0, src.color + "1)");
+    grad.addColorStop(0.35, src.color + "0.85)");
+    grad.addColorStop(0.7, src.color + "0.3)");
+    grad.addColorStop(1, src.color + "0)");
+    oc.fillStyle = grad;
+    oc.beginPath();
+    oc.arc(src.x, src.y, src.r, 0, Math.PI * 2);
+    oc.fill();
+  }
+
+  // Stamp the overlay onto the main canvas
+  ctx.drawImage(offscreen, 0, 0);
 }
 
 // Main loop
@@ -1711,6 +2119,7 @@ function update(dt) {
   waveTime += dt;
   updatePlayer(dt);
   updateCivilians(dt);
+  updateOracles(dt);
   updateEnemies(dt);
   updateItems(dt);
   updateMelee(dt);
