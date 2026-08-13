@@ -93,7 +93,9 @@ function createPlayer(x, y) {
     armor: 0,
     breath: 8,
     meleeTimer: 0,
+    meleeSeed: 0,
     parryTimer: 0,
+    parrySeed: 0,
     shootCooldown: 0,
     talkCooldown: 0
   };
@@ -226,21 +228,21 @@ const level1 = {
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,11,11,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1],
-    [1,9,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,10,11,11,1,2,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,11,1,11,1,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,1,2,0,0,0,0,0,0,0,0,0,0,0,1,11,0,0,0,11,9,11,1,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,1,2,0,11,11,11,11,11,11,11,11,11,11,1,11,0,7,0,11,1,11,1,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,11,1,11,1,2,0,11,0,6,0,7,0,6,0,7,0,1,11,0,0,0,11,1,11,1,0,0,0,0,0,1],
-    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,11,1,11,1,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,1,11,1,0,0,0,0,0,1],
-    [1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,11,1,11,1,2,0,11,0,7,0,0,0,0,0,0,0,1,1,1,1,1,9,9,11,1,0,0,0,0,0,1],
-    [1,9,9,9,1,1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,1,11,1,11,1,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,9,11,1,11,1,0,0,0,0,0,1],
-    [1,0,1,0,0,0,9,0,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,1,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,6,0,0,0,0,0,0,0,1,9,1,1,1,1,1,11,1,0,0,0,0,0,1],
-    [1,9,1,9,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,2,1,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,9,11,1,1,1,0,0,0,0,0,1],
-    [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,7,0,0,0,0,0,0,0,1,1,1,1,11,11,9,11,1,0,0,0,0,0,1],
-    [1,1,1,0,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,11,1,11,11,2,0,11,0,0,0,0,0,0,0,0,0,1,11,11,11,1,1,1,11,1,0,0,0,0,0,1],
-    [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,7,1,1,1,1,1,1,1,1,0,0,1,11,11,1,11,5,0,11,0,6,0,7,0,6,0,7,0,11,11,1,11,1,11,11,11,1,0,0,0,0,0,1],
-    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,1,1,0,11,0,0,0,0,0,0,0,0,0,1,11,1,11,11,1,1,9,1,0,0,0,0,0,1],
-    [1,0,1,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,0,11,11,11,11,11,11,11,11,11,11,1,11,11,11,1,11,1,11,1,0,0,0,0,0,1],
-    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,9,11,11,11,1,0,0,0,0,0,1],
+    [1,9,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,10,11,11,1,2,8,8,8,8,8,8,8,8,8,8,8,1,11,11,11,11,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,1,2,8,11,11,11,11,11,11,11,11,11,11,1,11,0,0,0,11,9,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,11,1,11,1,2,8,11,11,11,11,11,11,11,11,11,11,1,11,0,0,0,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,11,1,11,1,2,8,11,11,0,0,0,0,0,0,0,0,1,11,0,0,0,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,11,1,11,1,2,8,11,11,0,0,0,0,0,0,0,0,1,11,11,11,11,1,1,11,1,0,0,0,0,0,1],
+    [1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,11,1,11,1,2,8,11,11,0,0,0,0,0,0,0,0,1,1,1,1,1,9,9,11,1,0,0,0,0,0,1],
+    [1,9,9,9,1,1,9,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,1,11,1,11,1,2,8,11,11,0,0,0,0,0,0,0,0,1,11,11,11,9,11,1,11,1,0,0,0,0,0,1],
+    [1,0,1,0,0,0,9,0,9,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,1,0,0,0,1,0,0,1,11,1,11,11,2,8,11,11,0,0,0,0,0,0,2,0,1,9,1,1,1,1,1,11,1,0,0,0,0,0,1],
+    [1,9,1,9,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,2,1,0,0,0,1,0,0,1,11,1,11,11,2,8,11,11,0,0,0,0,0,0,0,0,1,11,11,11,9,11,1,1,1,0,0,0,0,0,1],
+    [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,1,0,0,1,11,1,11,11,2,8,11,11,0,0,0,0,0,0,0,0,1,1,1,1,11,11,9,11,1,0,0,0,0,0,1],
+    [1,1,1,0,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,11,1,11,11,2,8,11,11,0,0,0,0,0,0,0,0,1,11,11,11,1,1,1,11,1,0,0,0,0,0,1],
+    [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,7,1,1,1,1,1,1,1,1,0,0,1,11,11,1,11,5,8,11,11,0,0,0,0,0,0,0,0,9,11,1,11,1,11,11,11,1,0,0,0,0,0,1],
+    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,1,1,8,11,11,11,11,11,11,11,11,11,11,1,11,1,11,11,1,1,9,1,0,0,0,0,0,1],
+    [1,0,1,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,8,11,11,11,11,11,11,11,11,11,11,1,11,11,11,1,11,1,11,1,0,0,0,0,0,1],
+    [1,9,1,1,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,11,11,11,11,1,8,8,8,8,8,8,8,8,8,8,8,1,11,1,11,9,11,11,11,1,0,0,0,0,0,1],
     [1,0,9,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,11,11,11,11,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1],
     [1,1,1,9,1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,9,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -318,7 +320,7 @@ const level1 = {
 { x: 7 * TILE_SIZE, y: 15 * TILE_SIZE, text: "Thank you. That was claustrophobic. There are others. Please help them!", gender: "female" }
   ],
   oracles: [
-    { x: 53 * TILE_SIZE, y: 15 * TILE_SIZE }
+    { x: 53.15 * TILE_SIZE, y: 15.15 * TILE_SIZE }
   ],
   enemies: [
     /*
@@ -439,23 +441,25 @@ const level1 = {
 
 
 { x: 6 * TILE_SIZE, y: 28.5 * TILE_SIZE, behavior: "shooter" },  
-{ x: 3 * TILE_SIZE, y: 27.5 * TILE_SIZE, behavior: "kicker" }    ,
-{ x: 3 * TILE_SIZE, y: 29.5 * TILE_SIZE, behavior: "losShooter" }    ,
-{ x: 9 * TILE_SIZE, y: 27.5 * TILE_SIZE, behavior: "kicker" }    ,
-{ x: 9 * TILE_SIZE, y: 29.5 * TILE_SIZE, behavior: "losShooter" }    ,
-
-{ x: 55 * TILE_SIZE, y: 15 * TILE_SIZE, behavior: "losPatrol" } , 
-{ x: 55 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losPatrol" }  ,
-{ x: 53 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losPatrol" }  ,
-{ x: 51 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losPatrol" }  ,
-{ x: 51 * TILE_SIZE, y: 15 * TILE_SIZE, behavior: "losPatrol" }  ,
-{ x: 51 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" }  ,
-{ x: 53 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" } ,
-{ x: 55 * TILE_SIZE, y: 17 * TILE_SIZE, behavior: "losPatrol" }   ,
-{ x: 52 * TILE_SIZE, y: 20 * TILE_SIZE, behavior: "losPatrol" }   ,
+{ x: 51 * TILE_SIZE, y: 14 * TILE_SIZE, behavior: "kicker" } ,
+{ x: 51 * TILE_SIZE, y: 16 * TILE_SIZE, behavior: "kicker" } ,
 
 
-{ x: 5 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "shotShooter" } 
+{ x: 47 * TILE_SIZE, y: 13 * TILE_SIZE, behavior: "losPatrol" } , 
+{ x: 48 * TILE_SIZE, y: 11 * TILE_SIZE, behavior: "losPatrol" } , 
+{ x: 54 * TILE_SIZE, y: 11 * TILE_SIZE, behavior: "losPatrol" } , 
+{ x: 52 * TILE_SIZE, y: 11 * TILE_SIZE, behavior: "losPatrol" } , 
+{ x: 50 * TILE_SIZE, y: 11 * TILE_SIZE, behavior: "losPatrol" } , 
+
+{ x: 47 * TILE_SIZE, y: 18 * TILE_SIZE, behavior: "losPatrol" } ,
+
+{ x: 48 * TILE_SIZE, y: 19 * TILE_SIZE, behavior: "losPatrol" } ,
+{ x: 50 * TILE_SIZE, y: 19 * TILE_SIZE, behavior: "losPatrol" } ,
+{ x: 52 * TILE_SIZE, y: 19 * TILE_SIZE, behavior: "losPatrol" } ,
+{ x: 54 * TILE_SIZE, y: 19 * TILE_SIZE, behavior: "losPatrol" } ,
+
+
+{ x: 5 * TILE_SIZE, y: 5 * TILE_SIZE, behavior: "shotShooter" , dialog: "σ(Sigma): Out of shells... you got me." }
 
 
 
@@ -719,7 +723,7 @@ function loadLevel(index) {
   player.x = lvl.playerStart.x;
   player.y = lvl.playerStart.y;
 
-  enemies = lvl.enemies.map(e => createEnemy(e.x, e.y, e.behavior));
+  enemies = lvl.enemies.map(e => createEnemy(e.x, e.y, e.behavior, e));
   civilians = lvl.civilians.map(c =>
     createCivilian(c.x, c.y, c.text, c.gender)
   );
@@ -794,6 +798,13 @@ function rectsOverlap(a, b) {
     a.y + a.h <= b.y ||
     a.y >= b.y + b.h
   );
+}
+
+function isTouchingPlayer(entity) {
+  // Small padding so the player must be directly adjacent/overlapping, not just nearby
+  const pad = 1.5;
+  const a = { x: player.x - pad, y: player.y - pad, w: player.w + pad * 2, h: player.h + pad * 2 };
+  return rectsOverlap(a, entity);
 }
 
 function moveWithCollision(entity, dx, dy) {
@@ -942,6 +953,7 @@ function updatePlayer(dt) {
   // Melee (allowed in water)
   if (keys["k"] && player.meleeTimer <= 0) {
     player.meleeTimer = 0.15;
+    player.meleeSeed = Math.random() * 100000;
   }
   if (player.meleeTimer > 0) {
     player.meleeTimer -= dt;
@@ -950,6 +962,7 @@ function updatePlayer(dt) {
   // Parry — allowed in water if scroll acquired
   if (player.hasMelee && keys["l"] && player.parryTimer <= 0) {
     player.parryTimer = 0.15;
+    player.parrySeed = Math.random() * 100000;
   }
   if (player.parryTimer > 0) {
     player.parryTimer -= dt;
@@ -967,10 +980,7 @@ function talkToCivilian() {
   // Talk to civilians
   for (const c of civilians) {
     if (!c.alive) continue;
-    const dx = c.x - player.x;
-    const dy = c.y - player.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 24) {
+    if (isTouchingPlayer(c)) {
       c.talkTimer = 1.5;
       setMessage(c.dialog);
       break;
@@ -980,23 +990,20 @@ function talkToCivilian() {
   for (const o of oracles) {
     if (!o.alive) continue;
     if (o.answered) continue;
-    const dx = o.x - player.x;
-    const dy = o.y - player.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 24) {
+    if (isTouchingPlayer(o)) {
       o.talkTimer = 1.5;
-      setMessage("??? : I am the reason why you are here. I am standing right before death.", 3000);
+      setMessage("??? : ζ(Zeta): I do not fight unless I have to. All I seek is wisdom. I am standing near death.", 3000);
       // Defer prompt slightly so message renders first
       setTimeout(() => {
         lastTime = 0;
         for (const k in keys) keys[k] = false;
-        const answer = confirm("I am the reason why you are here. I am standing right before the death.\nWould you give me a part of your life?\n\n(You will lose 2/3 of your health)");
+        const answer = confirm(" ζ(Zeta): I do not fight unless I have to. Yet I am standing near death. All I seek is wisdom.\nWould you give me a part of your life?\n\n(You will lose all of your health.)");
         lastTime = 0;
         for (const k in keys) keys[k] = false;
         o.answered = true;
         if (answer) {
           o.accepted = true;
-          player.health = Math.max(1, Math.floor(player.health / 3));
+          player.health = 1;// Math.max(1, Math.floor(player.health / 3));
           updateHUD();
           // Spawn a scroll at the oracle's feet
           items.push(createItem(o.x + 5 * TILE_SIZE, o.y - 5 * TILE_SIZE, "scroll"));
@@ -1013,10 +1020,7 @@ function talkToCivilian() {
     if (!e.alive) continue;
     if (!e.isNeutral) continue;
     if (e.behavior !== "shooter" && e.behavior !== "shotShooter" && e.behavior !== "boss") continue;
-    const dx = e.x - player.x;
-    const dy = e.y - player.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 24) {
+    if (isTouchingPlayer(e)) {
       e.talkTimer = 1.5; // similar to civilians
       const defaultMsg =
         e.behavior === "boss"
@@ -1229,7 +1233,7 @@ function updateEnemies(dt) {
       }
       if (e.bullets <= 0) {
         e.isNeutral = true;
-        e.dialog = "...";
+        if (!e.dialog) e.dialog = "...";
       }
       continue;
     }
@@ -1668,7 +1672,7 @@ function drawTile(x, y, t) {
   else if (t === TILE_FURNITURE1) color = "#aa7744";
   else if (t === TILE_FURNITURE2) color = "#6a346a";
   else if (t === TILE_FURNITURE3) color = "#6688aa";
-  else if (t === TILE_FURNITURE4) color = "#95d952";
+  else if (t === TILE_FURNITURE4) color = "#3f5a26";
   else if (t === TILE_SECRET_DOOR) color = "#555";
   else if (t === TILE_PASSDOOR) color = "#8B0000";
   else if (t === TILE_WATER) color = "#1a4fa0";
@@ -1820,6 +1824,45 @@ function drawTile(x, y, t) {
 
     ctx.restore();
   }
+  if (t === TILE_FURNITURE4) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, TILE_SIZE, TILE_SIZE);
+    ctx.clip();
+
+    // Pseudo-random seed from tile position for deterministic camo pattern
+    const seed = (x * 11 + y * 17) & 0xffff;
+    const rng = (n) => ((seed * 1664525 + n * 22695477 + 1013904223) & 0x7fffffff) / 0x7fffffff;
+    const camoColors = ["#3d5c22", "#2d4a1a", "#5a7a36", "#22331a"];
+
+    // Irregular camo blotches, each built from a few overlapping ellipses
+    for (let i = 0; i < 6; i++) {
+      const bx = x + rng(i * 13) * TILE_SIZE;
+      const by = y + rng(i * 13 + 1) * TILE_SIZE;
+      const baseR = 2.5 + rng(i * 13 + 2) * 2.5;
+      const angle = rng(i * 13 + 3) * Math.PI;
+      ctx.fillStyle = camoColors[Math.floor(rng(i * 13 + 4) * camoColors.length)];
+      for (let j = 0; j < 3; j++) {
+        const jx = bx + (rng(i * 13 + j * 3 + 5) - 0.5) * baseR;
+        const jy = by + (rng(i * 13 + j * 3 + 6) - 0.5) * baseR;
+        const rx = baseR * (0.6 + rng(i * 13 + j * 3 + 7) * 0.5);
+        const ry = rx * (0.5 + rng(i * 13 + j * 3 + 8) * 0.4);
+        ctx.beginPath();
+        ctx.ellipse(jx, jy, rx, ry, angle, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Fine speckle for texture noise
+    for (let i = 0; i < 25; i++) {
+      const px = x + rng(i * 6 + 100) * TILE_SIZE;
+      const py = y + rng(i * 6 + 101) * TILE_SIZE;
+      ctx.fillStyle = rng(i * 6 + 102) > 0.5 ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.06)";
+      ctx.fillRect(px, py, 0.7, 0.7);
+    }
+
+    ctx.restore();
+  }
   if (t === TILE_PASSDOOR) {
     ctx.strokeStyle = "#ff4444";
     ctx.font = "7px monospace";
@@ -1925,11 +1968,11 @@ function draw() {
     ctx.fillRect(o.x, o.y, o.w, o.h);
     ctx.fillStyle = "#000";
     ctx.font = "8px monospace";
-    ctx.fillText("?", o.x + 3, o.y + o.h - 3);
+    ctx.fillText("ζ", o.x + 3, o.y + o.h - 3);
     if (!o.answered) {
-      ctx.fillStyle = "#fff700";
+      ctx.fillStyle = "#fffb00";
       ctx.font = "6px monospace";
-      ctx.fillText("E", o.x + 3, o.y - 3);
+      ctx.fillText("", o.x + 0, o.y - 3);
     }
   }
 
@@ -2016,24 +2059,65 @@ function draw() {
       const facingAngle = Math.atan2(fy, fx);
       const halfArc = Math.PI / 8;
       if (player.meleeTimer > 0) {
-        ctx.strokeStyle = "rgba(255, 220, 0, 0.9)";
-        ctx.fillStyle = "rgba(255, 220, 0, 0.3)";
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, 18, facingAngle - halfArc, facingAngle + halfArc);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        const seed = player.meleeSeed || 0;
+        const rng = (n) => ((seed * 1664525 + n * 22695477 + 1013904223) & 0x7fffffff) / 0x7fffffff;
+        const progress = Math.max(0, Math.min(1, player.meleeTimer / 0.15));
+        const yellowShades = ["#fff35c", "#ffe066", "#ffd700", "#ffb300"];
+        const strikeCount = 4;
+        for (let i = 0; i < strikeCount; i++) {
+          const angle = facingAngle + (rng(i * 3) - 0.5) * halfArc * 2.2;
+          const dist = 6 + rng(i * 3 + 1) * 7;
+          const len = 5 + rng(i * 3 + 2) * 7;
+          const mx = cx + Math.cos(angle) * dist;
+          const my = cy + Math.sin(angle) * dist;
+          const dx = Math.cos(angle);
+          const dy = Math.sin(angle);
+          const nearX = mx - dx * len / 2, nearY = my - dy * len / 2;
+          const farX = mx + dx * len / 2, farY = my + dy * len / 2;
+          const px = -dy, py = dx;
+          const thin = 0.4, thick = 1.8;
+          ctx.fillStyle = yellowShades[i % yellowShades.length];
+          ctx.globalAlpha = 0.5 + 0.5 * progress;
+          ctx.beginPath();
+          ctx.moveTo(nearX - px * thin, nearY - py * thin);
+          ctx.lineTo(nearX + px * thin, nearY + py * thin);
+          ctx.lineTo(farX + px * thick, farY + py * thick);
+          ctx.lineTo(farX - px * thick, farY - py * thick);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
       }
       if (player.parryTimer > 0) {
-        ctx.strokeStyle = "rgba(71, 154, 181, 0.9)";
-        ctx.fillStyle = "rgba(71, 154, 181, 0.3)";
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, 18, facingAngle - halfArc, facingAngle + halfArc);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        const seed = player.parrySeed || 0;
+        const rng = (n) => ((seed * 1664525 + n * 22695477 + 1013904223) & 0x7fffffff) / 0x7fffffff;
+        const progress = Math.max(0, Math.min(1, player.parryTimer / 0.15));
+        const blueShades = ["#8fd6f0", "#5cb8e0", "#479ab5", "#2f7a94"];
+        const strikeCount = 4;
+        for (let i = 0; i < strikeCount; i++) {
+          const angle = facingAngle + (rng(i * 3) - 0.5) * halfArc * 2.2;
+          const dist = 6 + rng(i * 3 + 1) * 7;
+          const len = 5 + rng(i * 3 + 2) * 7;
+          const mx = cx + Math.cos(angle) * dist;
+          const my = cy + Math.sin(angle) * dist;
+          const lineAngle = angle + Math.PI / 2;
+          const dx = Math.cos(lineAngle);
+          const dy = Math.sin(lineAngle);
+          const nearX = mx - dx * len / 2, nearY = my - dy * len / 2;
+          const farX = mx + dx * len / 2, farY = my + dy * len / 2;
+          const px = -dy, py = dx;
+          const thin = 0.4, thick = 1.8;
+          ctx.fillStyle = blueShades[i % blueShades.length];
+          ctx.globalAlpha = 0.5 + 0.5 * progress;
+          ctx.beginPath();
+          ctx.moveTo(nearX - px * thin, nearY - py * thin);
+          ctx.lineTo(nearX + px * thin, nearY + py * thin);
+          ctx.lineTo(farX + px * thick, farY + py * thick);
+          ctx.lineTo(farX - px * thick, farY - py * thick);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
       }
     }
   }
