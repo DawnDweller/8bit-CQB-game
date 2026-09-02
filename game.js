@@ -33,10 +33,355 @@ const TILE_LIGHT = 12;
 const keys = {};
 window.addEventListener("keydown", e => {
   keys[e.key.toLowerCase()] = true;
+  unlockAudio();
 });
 window.addEventListener("keyup", e => {
   keys[e.key.toLowerCase()] = false;
 });
+
+// --- Sound FX (synthesized, no external assets) ---
+let audioCtx = null;
+let pendingShellDropTimer = null;
+
+function unlockAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function playShellDropSound() {
+  if (!audioCtx) return;
+  const ctx = audioCtx;
+  const now = ctx.currentTime;
+  // Empty casing hitting a hard floor and bouncing/rolling to a stop.
+  // Each bounce = resonant filtered noise (metallic clink) + a faint sine partial (ring).
+  const bounces = [
+    { t: 0,     freq: 3400, Q: 14, gain: 0.20, ringGain: 0.05 },
+    { t: 0.085, freq: 2600, Q: 16, gain: 0.13, ringGain: 0.035 },
+    { t: 0.16,  freq: 3000, Q: 18, gain: 0.08, ringGain: 0.02 },
+    { t: 0.22,  freq: 2200, Q: 12, gain: 0.04, ringGain: 0.012 }
+  ];
+  for (const b of bounces) {
+    const t0 = now + b.t;
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(0.05, 1.4);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = b.freq;
+    filter.Q.value = b.Q;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(b.gain, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.045);
+    noise.connect(filter).connect(gain).connect(ctx.destination);
+    noise.start(t0);
+    noise.stop(t0 + 0.06);
+
+    const ring = ctx.createOscillator();
+    ring.type = "sine";
+    ring.frequency.setValueAtTime(b.freq * 1.2, t0);
+    const ringGain = ctx.createGain();
+    ringGain.gain.setValueAtTime(b.ringGain, t0);
+    ringGain.gain.exponentialRampToValueAtTime(0.0005, t0 + 0.05);
+    ring.connect(ringGain).connect(ctx.destination);
+    ring.start(t0);
+    ring.stop(t0 + 0.06);
+  }
+}
+
+function makeNoiseBuffer(duration, shapePower = 2) {
+  const bufferSize = Math.floor(audioCtx.sampleRate * duration);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, shapePower);
+  }
+  return buffer;
+}
+
+function playNoiseLayer({ duration, filterType, freq, freqEnd, Q, gain, startOffset = 0, shapePower = 2 }) {
+  const ctx = audioCtx;
+  const now = ctx.currentTime + startOffset;
+  const noise = ctx.createBufferSource();
+  noise.buffer = makeNoiseBuffer(duration, shapePower);
+  const filter = ctx.createBiquadFilter();
+  filter.type = filterType;
+  filter.frequency.setValueAtTime(freq, now);
+  if (freqEnd) filter.frequency.exponentialRampToValueAtTime(freqEnd, now + duration);
+  if (Q) filter.Q.value = Q;
+  const gainNode = ctx.createGain();
+  gainNode.gain.setValueAtTime(gain, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+  noise.connect(filter).connect(gainNode).connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + duration + 0.02);
+}
+
+function playGunshotSound() {
+  unlockAudio();
+  const jitter = () => 0.92 + Math.random() * 0.16;
+
+  // Instant broadband click - the actual "snap" of the striker/slide, near-zero attack
+  playNoiseLayer({ duration: 0.005, filterType: "highpass", freq: 6500, gain: 1.8, shapePower: 0.3 });
+
+  // Initial transient "crack" - very short, bright, sharp attack (the actual bang)
+  playNoiseLayer({ duration: 0.016, filterType: "bandpass", freq: 4400 * jitter(), Q: 1.3, gain: 1.75, shapePower: 0.4 });
+  playNoiseLayer({ duration: 0.018, filterType: "highpass", freq: 3200, gain: 1.55, shapePower: 0.45 });
+
+  // Mid "body" of the shot - fills out the snap, tightened so it doesn't blur the crack
+  playNoiseLayer({ duration: 0.045, filterType: "bandpass", freq: 900 * jitter(), freqEnd: 500, Q: 1.2, gain: 0.7, shapePower: 2.6 });
+
+  // Low "boom" - chest thump from the muzzle blast, noise-based (no clean oscillator tone)
+  playNoiseLayer({ duration: 0.18, filterType: "lowpass", freq: 220 * jitter(), freqEnd: 70, gain: 0.9, shapePower: 2.2 });
+
+  // Short room reflection/echo tail (CQB corridor slap-back), quieter and darker
+  playNoiseLayer({ duration: 0.09, filterType: "lowpass", freq: 700, gain: 0.22, startOffset: 0.045, shapePower: 1.8 });
+  playNoiseLayer({ duration: 0.08, filterType: "lowpass", freq: 500, gain: 0.1, startOffset: 0.09, shapePower: 1.8 });
+
+  // Schedule the shell-casing drop; a new shot cancels the previous
+  // pending drop so rapid fire only plays it after the LAST shot.
+  if (pendingShellDropTimer) {
+    clearTimeout(pendingShellDropTimer);
+  }
+  pendingShellDropTimer = setTimeout(() => {
+    playShellDropSound();
+    pendingShellDropTimer = null;
+  }, 380);
+}
+
+function playPunchSound() {
+  unlockAudio();
+  const jitter = () => 0.9 + Math.random() * 0.2;
+
+  // Swing "whoosh" - fast-moving air, rises then cuts off right before impact
+  playNoiseLayer({ duration: 0.07, filterType: "bandpass", freq: 700 * jitter(), freqEnd: 2200, Q: 0.8, gain: 0.14, shapePower: 0.7 });
+
+  // Impact "thud" - meaty low-end punch landing, arrives slightly after the swing
+  playNoiseLayer({ duration: 0.05, filterType: "lowpass", freq: 320 * jitter(), freqEnd: 90, gain: 0.5, shapePower: 0.5, startOffset: 0.055 });
+  playNoiseLayer({ duration: 0.09, filterType: "lowpass", freq: 160 * jitter(), freqEnd: 55, gain: 0.35, shapePower: 1.4, startOffset: 0.06 });
+
+  // Knuckle/cloth "snap" - short crisp transient right at the moment of contact
+  playNoiseLayer({ duration: 0.02, filterType: "bandpass", freq: 1800 * jitter(), Q: 1.4, gain: 0.22, shapePower: 0.5, startOffset: 0.055 });
+}
+
+function playParrySound() {
+  unlockAudio();
+  const jitter = () => 0.9 + Math.random() * 0.2;
+
+  // Swing "whoosh" - same shape as the punch but pitched up for a sharper feel
+  playNoiseLayer({ duration: 0.05, filterType: "bandpass", freq: 1400 * jitter(), freqEnd: 3400, Q: 1.0, gain: 0.16, shapePower: 0.6 });
+
+  // Impact - tightened and pitched higher than the punch, more of a sharp deflect than a thud
+  playNoiseLayer({ duration: 0.03, filterType: "lowpass", freq: 700 * jitter(), freqEnd: 200, gain: 0.45, shapePower: 0.5, startOffset: 0.035 });
+  playNoiseLayer({ duration: 0.05, filterType: "lowpass", freq: 350 * jitter(), freqEnd: 120, gain: 0.3, shapePower: 1.2, startOffset: 0.04 });
+
+  // Bright metallic-ish "clack" transient - sharper tone than the punch's knuckle snap
+  playNoiseLayer({ duration: 0.014, filterType: "bandpass", freq: 3200 * jitter(), Q: 1.8, gain: 0.32, shapePower: 0.4, startOffset: 0.035 });
+}
+
+function playWoodBreakSound() {
+  unlockAudio();
+  const jitter = () => 0.9 + Math.random() * 0.2;
+
+  // Initial splitting crack - dull, not bright like glass
+  playNoiseLayer({ duration: 0.03, filterType: "bandpass", freq: 1100 * jitter(), Q: 1.0, gain: 0.55, shapePower: 0.6 });
+
+  // A handful of splinter/crackle transients as the wood tears apart
+  const splinters = 4;
+  for (let i = 0; i < splinters; i++) {
+    playNoiseLayer({
+      duration: 0.02 + Math.random() * 0.015,
+      filterType: "highpass",
+      freq: 1600 + Math.random() * 1400,
+      gain: 0.2 + Math.random() * 0.12,
+      shapePower: 0.5,
+      startOffset: 0.01 + i * 0.025 + Math.random() * 0.012
+    });
+  }
+
+  // Heavy low thud/creak - the door giving way and slamming/falling
+  playNoiseLayer({ duration: 0.16, filterType: "lowpass", freq: 260 * jitter(), freqEnd: 70, gain: 0.75, shapePower: 1.4, startOffset: 0.02 });
+  playNoiseLayer({ duration: 0.22, filterType: "lowpass", freq: 140 * jitter(), freqEnd: 50, gain: 0.4, shapePower: 1.8, startOffset: 0.03 });
+}
+
+function playGlassBreakSound() {
+  unlockAudio();
+  const jitter = () => 0.9 + Math.random() * 0.2;
+
+  // Sharp initial shatter crack - bright and brittle, unlike wood's dull crack
+  playNoiseLayer({ duration: 0.015, filterType: "highpass", freq: 5200 * jitter(), gain: 0.75, shapePower: 0.35 });
+  playNoiseLayer({ duration: 0.035, filterType: "bandpass", freq: 4200 * jitter(), Q: 1.3, gain: 0.55, shapePower: 0.5 });
+
+  // Tinkling shards scattering, several bright quick high-pitched bursts
+  const shards = 6;
+  for (let i = 0; i < shards; i++) {
+    playNoiseLayer({
+      duration: 0.015 + Math.random() * 0.02,
+      filterType: "bandpass",
+      freq: 2500 + Math.random() * 4000,
+      Q: 2 + Math.random() * 2,
+      gain: 0.12 + Math.random() * 0.12,
+      shapePower: 0.4,
+      startOffset: 0.01 + Math.random() * 0.13
+    });
+  }
+
+  // Small low thump for the object's mass hitting the floor
+  playNoiseLayer({ duration: 0.06, filterType: "lowpass", freq: 200 * jitter(), freqEnd: 80, gain: 0.2, shapePower: 1.0, startOffset: 0.01 });
+}
+
+// --- Talk/voice FX (synthesized gibberish speech) ---
+function playVoiceBlip(t0, { freq, freqEnd, dur, waveform = "sawtooth", gain = 0.12, filterFreq = 1200, filterQ = 1 }) {
+  const ctx = audioCtx;
+  const osc = ctx.createOscillator();
+  osc.type = waveform;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freqEnd) osc.frequency.linearRampToValueAtTime(freqEnd, t0 + dur);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = filterFreq;
+  filter.Q.value = filterQ;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + dur * 0.18);
+  g.gain.exponentialRampToValueAtTime(0.0005, t0 + dur);
+  osc.connect(filter).connect(g).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.01);
+}
+
+function playVoiceSequence({
+  count,
+  baseFreq,
+  freqSpread,
+  dur,
+  durJitter = 0.4,
+  gap,
+  gapJitter = 0.4,
+  waveform = "sawtooth",
+  gain = 0.12,
+  gainJitter = 0.25,
+  filterFreq = 1200,
+  filterQ = 1,
+  glideRatio = 0.15
+}) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  let t = now;
+  for (let i = 0; i < count; i++) {
+    const d = dur * (1 - durJitter / 2 + Math.random() * durJitter);
+    const f0 = baseFreq + (Math.random() * 2 - 1) * freqSpread;
+    const glideDir = Math.random() < 0.5 ? -1 : 1;
+    const f1 = f0 * (1 + glideDir * glideRatio * Math.random());
+    const g = gain * (1 - gainJitter / 2 + Math.random() * gainJitter);
+    playVoiceBlip(t, { freq: f0, freqEnd: f1, dur: d, waveform, gain: g, filterFreq, filterQ });
+    t += d + gap * (1 - gapJitter / 2 + Math.random() * gapJitter);
+  }
+}
+
+// Calm/panicked gibberish for regular male NPCs (civilians, Alpha, Sigma, etc.)
+function playMaleTalkSound(panic = false) {
+  unlockAudio();
+  if (panic) {
+    playVoiceSequence({
+      count: 5 + Math.floor(Math.random() * 2),
+      baseFreq: 175, freqSpread: 65,
+      dur: 0.045, gap: 0.03,
+      waveform: "sawtooth", gain: 0.16,
+      filterFreq: 1400, filterQ: 1.2, glideRatio: 0.3
+    });
+  } else {
+    playVoiceSequence({
+      count: 3 + Math.floor(Math.random() * 2),
+      baseFreq: 125, freqSpread: 28,
+      dur: 0.09, gap: 0.06,
+      waveform: "sawtooth", gain: 0.13,
+      filterFreq: 900, filterQ: 0.9, glideRatio: 0.12
+    });
+  }
+}
+
+// Calm/panicked gibberish for female NPCs
+function playFemaleTalkSound(panic = false) {
+  unlockAudio();
+  if (panic) {
+    playVoiceSequence({
+      count: 5 + Math.floor(Math.random() * 2),
+      baseFreq: 370, freqSpread: 100,
+      dur: 0.04, gap: 0.028,
+      waveform: "sawtooth", gain: 0.14,
+      filterFreq: 2600, filterQ: 1.1, glideRatio: 0.35
+    });
+  } else {
+    playVoiceSequence({
+      count: 3 + Math.floor(Math.random() * 2),
+      baseFreq: 260, freqSpread: 40,
+      dur: 0.08, gap: 0.055,
+      waveform: "sawtooth", gain: 0.11,
+      filterFreq: 1800, filterQ: 0.9, glideRatio: 0.14
+    });
+  }
+}
+
+// Oracle ζ(Zeta): eerie layered/detuned chorus with a slow shimmering tail
+function playOracleTalkSound() {
+  unlockAudio();
+  const ctx = audioCtx;
+  const now = ctx.currentTime;
+  const syllables = 4;
+  let t = now;
+  for (let i = 0; i < syllables; i++) {
+    const dur = 0.16 + Math.random() * 0.05;
+    const base = 90 + Math.random() * 20;
+    for (const detune of [-6, 0, 7]) {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(base, t);
+      osc.frequency.linearRampToValueAtTime(base * 1.5, t + dur);
+      osc.detune.value = detune * 10;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 1200;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.05, t + dur * 0.3);
+      g.gain.exponentialRampToValueAtTime(0.0005, t + dur * 1.6);
+      osc.connect(filter).connect(g).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + dur * 1.7);
+    }
+    t += dur + 0.09;
+  }
+  playNoiseLayer({ duration: 0.5, filterType: "bandpass", freq: 3200, freqEnd: 5200, Q: 4, gain: 0.04, shapePower: 1.5 });
+}
+
+// η(Eta): robotic/glitchy quantized pitch steps
+function playEtaTalkSound() {
+  unlockAudio();
+  const ctx = audioCtx;
+  const now = ctx.currentTime;
+  const scale = [349, 392, 440, 494, 523, 587, 659];
+  let t = now;
+  const steps = 7;
+  for (let i = 0; i < steps; i++) {
+    const dur = 0.026 + Math.random() * 0.013;
+    const freq = scale[Math.floor(Math.random() * scale.length)] * (Math.random() < 0.35 ? 1 : 2);
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(freq, t);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 3000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.09, t);
+    g.gain.exponentialRampToValueAtTime(0.0006, t + dur);
+    osc.connect(filter).connect(g).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.005);
+    t += dur + (Math.random() < 0.3 ? 0.02 : 0.008);
+  }
+  playNoiseLayer({ duration: 0.3, filterType: "highpass", freq: 4000, gain: 0.03, shapePower: 1.2 });
+}
 
 // HUD helpers
 const statsDiv = document.getElementById("stats");
@@ -150,7 +495,7 @@ function createEnemy(x, y, behavior = "patrol", opts = {}) {
   return base;
 }
 
-function createCivilian(x, y, dialog, gender = "male") {
+function createCivilian(x, y, dialog, gender = "male", panic = false) {
   return {
     x,
     y,
@@ -162,6 +507,7 @@ function createCivilian(x, y, dialog, gender = "male") {
     alive: true,
     dialog,
     gender,
+    panic,
     talkTimer: 0,
     changeDirTimer: 0
   };
@@ -210,7 +556,7 @@ function createBullet(x, y, dx, dy, owner) {
 // Secret password:  One sword keeps another in the sheath. Sometimes the threat of violence alone is a deterrent. 
 const level1 = {
   useLighting: false,
-  playerStart: { x: 52 * TILE_SIZE, y: 22 * TILE_SIZE },
+  playerStart: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
   map: [      // map size x = 69 tile  y = 31 tile
   // 1 Wall
   // 2 Breakable wall
@@ -316,7 +662,7 @@ const level1 = {
     { x: 47 * TILE_SIZE, y: 5 * TILE_SIZE, text: "I was a goner. 🥲 Thanks.", gender: "male" }
     */
 { x: 1 * TILE_SIZE, y: 21 * TILE_SIZE, text: "She is tied down and never talks. They keep her in that secret room.", gender: "male" },
-{ x: 1 * TILE_SIZE, y: 23 * TILE_SIZE, text: "She wants you dead. You have to kill her!  χ(Chi): I just can't.", gender: "female" },
+{ x: 1 * TILE_SIZE, y: 23 * TILE_SIZE, text: "She wants you dead. You have to kill her!  χ(Chi): I just can't.", gender: "female", panic: true },
 { x: 7 * TILE_SIZE, y: 15 * TILE_SIZE, text: "Thank you. That was claustrophobic. There are others. Please help them!", gender: "female" }
   ],
   oracles: [
@@ -725,7 +1071,7 @@ function loadLevel(index) {
 
   enemies = lvl.enemies.map(e => createEnemy(e.x, e.y, e.behavior, e));
   civilians = lvl.civilians.map(c =>
-    createCivilian(c.x, c.y, c.text, c.gender)
+    createCivilian(c.x, c.y, c.text, c.gender, c.panic)
   );
   oracles = (lvl.oracles || []).map(o => createOracle(o.x, o.y));
   items = lvl.items.map(i => createItem(i.x, i.y, i.type));
@@ -947,6 +1293,7 @@ function updatePlayer(dt) {
     );
     player.bullets--;
     player.shootCooldown = 0.25;
+    playGunshotSound();
     updateHUD();
   }
 
@@ -954,6 +1301,7 @@ function updatePlayer(dt) {
   if (keys["k"] && player.meleeTimer <= 0) {
     player.meleeTimer = 0.15;
     player.meleeSeed = Math.random() * 100000;
+    playPunchSound();
   }
   if (player.meleeTimer > 0) {
     player.meleeTimer -= dt;
@@ -963,6 +1311,7 @@ function updatePlayer(dt) {
   if (player.hasMelee && keys["l"] && player.parryTimer <= 0) {
     player.parryTimer = 0.15;
     player.parrySeed = Math.random() * 100000;
+    playParrySound();
   }
   if (player.parryTimer > 0) {
     player.parryTimer -= dt;
@@ -983,6 +1332,11 @@ function talkToCivilian() {
     if (isTouchingPlayer(c)) {
       c.talkTimer = 1.5;
       setMessage(c.dialog);
+      if (c.gender === "female") {
+        playFemaleTalkSound(c.panic);
+      } else {
+        playMaleTalkSound(c.panic);
+      }
       break;
     }
   }
@@ -993,6 +1347,7 @@ function talkToCivilian() {
     if (isTouchingPlayer(o)) {
       o.talkTimer = 1.5;
       setMessage("??? : ζ(Zeta): I do not fight unless I have to. All I seek is wisdom. I am standing near death.", 3000);
+      playOracleTalkSound();
       // Defer prompt slightly so message renders first
       setTimeout(() => {
         lastTime = 0;
@@ -1027,6 +1382,11 @@ function talkToCivilian() {
           ? "α(Alpha): You have bested me... Let us talk."
           : "α(Alpha): I'm out of ammo... Let's talk.";
       setMessage(e.dialog || defaultMsg);
+      if (e.behavior === "shooter") {
+        playEtaTalkSound();
+      } else {
+        playMaleTalkSound(false);
+      }
       break;
     }
   }
@@ -1389,6 +1749,7 @@ function updateBullets(dt) {
       b.owner === "player"
     ) {
       setTile(tx, ty, TILE_FLOOR);
+      playGlassBreakSound();
     }
 
     if (b.owner === "player") {
@@ -1542,6 +1903,7 @@ function updateMelee(dt) {
       if (state.bulletHits >= 5) {
         setTile(tx, ty, TILE_FLOOR);
         delete breakableState[key];
+        playWoodBreakSound();
       }
     } else if (
       tile === TILE_FURNITURE1 ||
@@ -1552,6 +1914,7 @@ function updateMelee(dt) {
       tile === TILE_LIGHT
     ) {
       setTile(tx, ty, TILE_FLOOR);
+      playGlassBreakSound();
     }
   }
 }
